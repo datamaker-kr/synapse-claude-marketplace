@@ -1,0 +1,9 @@
+{
+  "name": "synapse-marketplace",
+  "description": "Synapse SDK plugin development toolkit for Claude Code",
+  "plugins": [
+    {
+      "path": "."
+    }
+  ]
+}
