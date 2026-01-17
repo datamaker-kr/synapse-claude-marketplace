@@ -8,7 +8,7 @@
     {
       "name": "synapse-sdk",
       "description": "Synapse SDK plugin development toolkit for Claude Code",
-      "source": "datamaker-kr/synapse-claude-plugin"
+      "source": "https://github.com/datamaker-kr/synapse-claude-plugin"
     }
   ]
 }
