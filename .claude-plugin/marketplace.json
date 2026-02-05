@@ -26,6 +26,21 @@
       "tags": ["synapse-sdk", "ml-pipeline", "plugin-development"]
     },
     {
+      "name": "speckit-helper",
+      "source": "./plugins/speckit-helper",
+      "description": "Specification-Driven Development plugin - transform feature ideas into structured specs, task lists, and implementations",
+      "version": "1.0.0",
+      "author": {
+        "name": "datamaker-kr Organization"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["specification", "planning", "workflow", "task-management", "sdd"],
+      "category": "development",
+      "tags": ["specification", "planning", "workflow", "task-management"]
+    },
+    {
       "name": "platform-dev-team-common",
       "source": "./plugins/platform-dev-team-common",
       "description": "Common development team plugin - TDD guidance, documentation management, and PR automation with Mermaid charts",

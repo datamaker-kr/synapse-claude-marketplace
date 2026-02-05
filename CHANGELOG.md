@@ -5,7 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 따르며,
 버전 관리는 [Semantic Versioning](https://semver.org/lang/ko/)을 사용합니다.
 
-## [Unreleased]
+## [Unreleased] - yyyy-mm-dd
+
+### Added
+
+- `speckit-helper` 플러그인 추가 (v1.0.0)
+  - 11개 명령어: specify, clarify, refine, plan, tasks, implement, analyze, checklist, constitution, tasks-to-issues, help
+  - 4개 스킬: spec-authoring, task-decomposition, consistency-analysis, checklist-generation
+  - 2개 에이전트: spec-workflow, quality-gate
+
+### Changed
+
+### Fixed
 
 ## [1.0.0] - 2026-01-27
 
