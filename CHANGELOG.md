@@ -9,14 +9,26 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [1.1.0] - 2026-02-05
+
+### Added
+
 - `speckit-helper` 플러그인 추가 (v1.0.0)
   - 11개 명령어: specify, clarify, refine, plan, tasks, implement, analyze, checklist, constitution, tasks-to-issues, help
   - 4개 스킬: spec-authoring, task-decomposition, consistency-analysis, checklist-generation
   - 2개 에이전트: spec-workflow, quality-gate
 
-### Changed
+### 등록된 플러그인
 
-### Fixed
+| 플러그인 | 버전 | 설명 |
+|---------|------|------|
+| synapse-plugin-helper | 1.0.0 | Synapse SDK 플러그인 개발 도구 |
+| platform-dev-team-common | 1.0.0 | TDD, 문서 관리, PR 자동화 플러그인 |
+| speckit-helper | 1.0.0 | 명세 기반 개발(SDD) 플러그인 |
 
 ## [1.0.0] - 2026-01-27
 
