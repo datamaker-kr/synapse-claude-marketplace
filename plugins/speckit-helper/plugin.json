@@ -1,0 +1,44 @@
+{
+  "name": "speckit-helper",
+  "displayName": "Speckit Helper - Specification-Driven Development",
+  "version": "1.0.0",
+  "description": "A structured workflow for turning natural language requirements into specifications, plans, tasks, and implementations. Works with any project type.",
+  "author": "datamaker-kr Organization",
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/datamaker-kr/synapse-claude-marketplace.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": [
+    "specification",
+    "planning",
+    "workflow",
+    "task-management",
+    "spec-driven-development",
+    "requirements"
+  ],
+  "commands": [
+    "./commands/help.md",
+    "./commands/specify.md",
+    "./commands/clarify.md",
+    "./commands/refine.md",
+    "./commands/plan.md",
+    "./commands/tasks.md",
+    "./commands/implement.md",
+    "./commands/analyze.md",
+    "./commands/checklist.md",
+    "./commands/constitution.md",
+    "./commands/tasks-to-issues.md"
+  ],
+  "skills": [
+    "./skills/spec-authoring/SKILL.md",
+    "./skills/task-decomposition/SKILL.md",
+    "./skills/consistency-analysis/SKILL.md",
+    "./skills/checklist-generation/SKILL.md"
+  ],
+  "agents": [
+    "./agents/spec-workflow/SKILL.md",
+    "./agents/quality-gate/SKILL.md"
+  ]
+}
