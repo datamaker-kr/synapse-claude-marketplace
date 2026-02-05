@@ -1,7 +1,7 @@
 {
   "name": "synapse-marketplace",
   "displayName": "Synapse Plugin Marketplace",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Official Claude Code plugin marketplace for Synapse Products development",
   "author": {
     "name": "datamaker-kr Organization",
