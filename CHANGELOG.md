@@ -13,6 +13,15 @@
 
 ### Fixed
 
+## [1.1.1] - 2026-02-06
+
+### Fixed
+
+- `plugin.json` 매니페스트 스키마 오류 수정 (`speckit-helper`, 마켓플레이스 루트)
+  - 미지원 필드 `displayName` 제거
+  - `repository`를 object에서 string으로 변경 (공식 스키마 준수)
+  - `author`를 string에서 object로 변경 (speckit-helper)
+
 ## [1.1.0] - 2026-02-05
 
 ### Added
