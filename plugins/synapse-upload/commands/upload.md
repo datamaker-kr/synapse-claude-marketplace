@@ -450,11 +450,10 @@ print(f"\nDone! Created {created} data units, uploaded {len(all_files)} files.")
 #### Submit the script
 
 ```bash
-synapse script submit /tmp/synapse_upload_<name>.py --follow
+synapse script submit /tmp/synapse_upload_<name>.py
 ```
 
 Options:
-- `--follow` / `-f`: Stream logs in real-time (recommended)
 - `--gpus <n>`: Request GPUs (rarely needed for upload)
 - `--cpus <n>`: Request CPUs
 - `-r <requirements.txt>`: Additional pip requirements
@@ -462,31 +461,23 @@ Options:
 The script runs on the agent's Ray cluster with:
 - Storage mount access
 - Auto-injected `SYNAPSE_HOST` and `SYNAPSE_ACCESS_TOKEN`
-- Real-time log streaming via Ray Jobs API
 
-### Step 8: Monitor Progress
+### Step 8: Report Job Submission
 
-```bash
-# Stream logs for a running job
-synapse script logs <job-id> --follow
-
-# Get logs for a completed job
-synapse script logs <job-id>
-```
-
-### Step 9: Report Results
+Once the job is submitted, print the job ID and tell the user how to monitor:
 
 ```
-## Upload Complete
+## Job Submitted
 
-- Data units created: 1,247
-- Files uploaded: 3,741
-- Failed: 0
-- Duration: 12m 34s
 - Job ID: <job-id>
-```
+- Script: /tmp/synapse_upload_<name>.py
 
-If there were failures, list the failed items and suggest remediation.
+### Monitor Progress
+  synapse script logs <job-id> --follow
+
+### Check Status Later
+  synapse script logs <job-id>
+```
 
 ## Error Handling
 
@@ -513,7 +504,7 @@ For datasets with 10,000+ files:
 2. **Use organize_files_by_pattern** — glob patterns + grouping regex
 3. **Set batch size high** — `creating_data_unit_batch_size=50` or higher
 4. **Use job mode** — for long-running uploads to avoid CLI timeouts
-5. **Monitor via logs** — `synapse plugin job logs <id> --follow`
+5. **Tell user how to monitor** — `synapse script logs <job-id> --follow`
 
 ## Flexibility Note
 

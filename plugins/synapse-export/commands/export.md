@@ -119,7 +119,15 @@ Options:
   - "Custom (I'll describe what I need)" → ask for details
 ```
 
-**Step 2d: Additional Options**:
+**Step 2d: Output Directory** — Always ask where to save the export:
+```
+"Where should the export output be saved? (This is a path on the Ray worker)"
+Options:
+  - "Default (/tmp/synapse_export_<project_name>)" → use default path
+  - "I'll specify a path" → ask for the full path
+```
+
+**Step 2e: Additional Options**:
 ```
 "Any additional options?"
 Options:
@@ -201,7 +209,7 @@ If `--dry-run`, stop here.
 
 ### Step 5: Execute Export
 
-Write a dataset-specific Python export script and submit via `synapse script submit`. Credentials are auto-injected.
+**CRITICAL: Always use `synapse script submit` to run exports on Ray.** Never run export scripts locally with `python3` — the script must be submitted to the Ray cluster where credentials are auto-injected and compute resources are available.
 
 #### Write the export script
 
@@ -257,36 +265,27 @@ print(f"\nDone! Exported {count} assignments to {OUTPUT_DIR}")
 
 **IMPORTANT**: Adapt the conversion logic to the requested format (COCO, YOLO, VOC, etc.). See the SKILL.md for format conversion reference code.
 
-#### Submit the script
+#### Submit the script (MANDATORY — never run locally)
 
 ```bash
-synapse script submit /tmp/synapse_export_<name>.py --follow
+synapse script submit /tmp/synapse_export_<name>.py
 ```
 
-### Step 6: Monitor Progress
+### Step 6: Report Job Submission
 
-```bash
-synapse script logs <job-id> --follow
-```
-
-### Step 7: Report Results
+Once the job is submitted, print the job ID and tell the user how to monitor:
 
 ```
-## Export Complete
+## Job Submitted
 
-- Target: Assignment (Project #42)
-- Items exported: 1,247
-- Format: COCO
-- Output: /tmp/synapse_export_ct_detection/
-- Original files: 1,247 images downloaded
-- Duration: 5m 12s
 - Job ID: <job-id>
+- Script: /tmp/synapse_export_<name>.py
 
-### Output Files
-- annotations/instances_train.json (997 images, 4,231 annotations)
-- annotations/instances_val.json (125 images, 512 annotations)
-- annotations/instances_test.json (125 images, 498 annotations)
-- classes.json (4 classes)
+### Monitor Progress
+  synapse script logs <job-id> --follow
+
+### Check Status Later
+  synapse script logs <job-id>
 ```
 
 If the export output is on the Ray worker, suggest how the user can retrieve it (e.g., `scp`, S3 copy, or re-export to storage).

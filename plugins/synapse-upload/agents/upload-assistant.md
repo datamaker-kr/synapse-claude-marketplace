@@ -376,16 +376,20 @@ print(f"\nDone! Created {created} data units, uploaded {len(all_files)} files.")
 ### 3.2 Submit Script
 
 ```bash
-synapse script submit /tmp/synapse_upload_<name>.py --follow
+synapse script submit /tmp/synapse_upload_<name>.py
 ```
 
-### 3.3 Monitor Progress
+This prints a job ID and returns immediately. Tell the user:
 
-```bash
-synapse script logs <job-id> --follow
 ```
+Job submitted: <job-id>
 
-Report progress periodically to the user.
+To monitor progress:
+  synapse script logs <job-id> --follow
+
+To check status later:
+  synapse script logs <job-id>
+```
 
 ## Phase 4: Report
 
@@ -437,7 +441,7 @@ For datasets with 10,000+ files:
 2. **Use glob patterns** for counting
 3. **Set high batch size**: `creating_data_unit_batch_size=50` minimum
 4. **Use job mode** for execution to avoid timeouts
-5. **Monitor via logs**: `synapse plugin job logs <id> --follow`
+5. **Tell user how to monitor**: `synapse script logs <job-id> --follow`
 6. **Report progress** periodically so user knows it's working
 
 ## Flexibility

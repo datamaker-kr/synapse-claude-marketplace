@@ -556,8 +556,8 @@ Uploads run as Python scripts submitted to the agent's Ray cluster via `synapse 
 ### Workflow
 
 1. Write an upload script to `/tmp/synapse_upload_<name>.py` using `BackendClient`
-2. Submit: `synapse script submit /tmp/synapse_upload_<name>.py --follow`
-3. Monitor: `synapse script logs <job-id> -f`
+2. Submit: `synapse script submit /tmp/synapse_upload_<name>.py`
+3. Tell user: `synapse script logs <job-id> --follow` to monitor
 
 ### Script Pattern
 
@@ -606,18 +606,24 @@ client.create_data_units([{
 ### Submission
 
 ```bash
-# Submit and follow logs
-synapse script submit /tmp/synapse_upload_<name>.py --follow
+# Submit script (returns job ID immediately)
+synapse script submit /tmp/synapse_upload_<name>.py
 
 # Submit with extra requirements
-synapse script submit /tmp/synapse_upload_<name>.py -r requirements.txt --follow
+synapse script submit /tmp/synapse_upload_<name>.py -r requirements.txt
+```
+
+Tell the user how to monitor after submission:
+
+```bash
+# Stream logs in real-time
+synapse script logs <job-id> --follow
 
 # Check logs later
 synapse script logs <job-id>
-synapse script logs <job-id> --follow
 ```
 
-The script runs on the agent's Ray cluster with auto-injected `SYNAPSE_HOST` and `SYNAPSE_ACCESS_TOKEN`, storage mount access, and real-time log streaming.
+The script runs on the agent's Ray cluster with auto-injected `SYNAPSE_HOST` and `SYNAPSE_ACCESS_TOKEN` and storage mount access.
 
 ## Large Dataset Strategies (10K+ files)
 
@@ -625,7 +631,7 @@ The script runs on the agent's Ray cluster with auto-injected `SYNAPSE_HOST` and
 2. **Use glob patterns**: Count files instead of listing them
 3. **High batch size**: Set `creating_data_unit_batch_size` to 50-100 for faster data unit creation
 4. **Job mode**: Use `--mode job` for long uploads to avoid CLI timeouts
-5. **Monitor**: `synapse plugin job logs <job-id> --follow`
+5. **Tell user how to monitor**: `synapse script logs <job-id> --follow`
 6. **organize_files_by_pattern**: For the ai-upload-plugin, use the batch tool with glob patterns and a grouping regex
 
 ## Batch Pattern Organization (ai-upload-plugin)

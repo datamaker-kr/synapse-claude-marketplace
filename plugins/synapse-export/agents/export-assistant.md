@@ -374,16 +374,20 @@ print(f"\nDone! COCO export saved to {OUTPUT_DIR}")
 ### 3.2 Submit Script
 
 ```bash
-synapse script submit /tmp/synapse_export_<name>.py --follow
+synapse script submit /tmp/synapse_export_<name>.py
 ```
 
-### 3.3 Monitor Progress
+This prints a job ID and returns immediately. Tell the user:
 
-```bash
-synapse script logs <job-id> --follow
 ```
+Job submitted: <job-id>
 
-Report progress periodically to the user.
+To monitor progress:
+  synapse script logs <job-id> --follow
+
+To check status later:
+  synapse script logs <job-id>
+```
 
 ## Phase 4: Report
 

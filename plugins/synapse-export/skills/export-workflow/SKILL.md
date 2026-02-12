@@ -230,7 +230,7 @@ synapse plugin run export --plugin <plugin-code> --mode job --params '{
 }'
 ```
 
-Monitor via:
+Tell the user how to monitor:
 ```bash
 synapse plugin job get <job-id>
 synapse plugin job logs <job-id> --follow
