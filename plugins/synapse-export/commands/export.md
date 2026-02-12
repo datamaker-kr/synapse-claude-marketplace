@@ -308,13 +308,18 @@ If the export output is on the Ray worker, suggest how the user can retrieve it 
 
 ## Large Dataset Guidelines
 
-For projects with 10,000+ annotations:
+For projects with 10,000+ data units, the paginated API is extremely slow (page size capped at 100; 134K items = 1,343 API calls = 30-90 min). Always use the export plugin system:
 
-1. **Use `list_all=True`** — the SDK handles pagination automatically
-2. **Stream processing** — don't accumulate all data in memory
-3. **Batch file writes** — write output files as you go, not all at the end
-4. **Use script submit** — `synapse script submit` for long-running exports
-5. **Report progress** — print every 100-500 items so the user can follow via logs
+1. **`synapse script submit`** — Submit an export plugin or script to Ray. The SDK's `BaseExporter` handles pagination internally — plugins receive pre-fetched items via `params['results']`. **Never submit from `/tmp`** (permission errors with snap files); use a clean subdirectory.
+2. **`list_all=True` streaming** — Only for smaller datasets (< 10K items) when writing quick one-off scripts. Returns `(generator, count)` tuple.
+
+### Key Data Model Facts
+
+- **Annotation data** lives in `hitl_assignment.data` (JSONField), NOT in `hitl_assignmentdata` (which stores file references)
+- **Task has direct `project_id`** — no need to join through workshop
+- **DataUnit meta** is a JSONField; query with `meta->>'origin_file_stem'` in raw SQL (Django's `__in` lookup on JSON keys does not work)
+- **Project title** field is `title`, not `name`
+- **Workshop table** is `hitl_workshop`, not `annotation_workshop`
 
 ## Flexibility Note
 

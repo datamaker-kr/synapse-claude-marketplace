@@ -188,16 +188,17 @@ OUTPUT_DIR = Path('/tmp/export_output')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Fetch all assignments for the project
-results, count = client.list_assignments(
+# list_all=True returns (generator, count) tuple
+results_gen, count = client.list_assignments(
     params={'project': PROJECT_ID},
     list_all=True,
 )
 print(f"Found {count} assignments to export")
 
 # Export each assignment
-for i, assignment in enumerate(results):
-    data = assignment['data']       # DM Schema v1 annotation data
-    files = assignment['file']      # File metadata
+for i, assignment in enumerate(results_gen):
+    data = assignment['data']       # DM Schema v1 annotation data (from hitl_assignment.data)
+    files = assignment.get('file')  # File metadata
     assignment_id = assignment['id']
 
     # === CONVERT TO DESIRED FORMAT HERE ===
@@ -262,6 +263,55 @@ synapse script stop <job-id>
 | `assignment` | `project` (int) | `status`, `user`, `tags`, date range |
 | `ground_truth` | `ground_truth_dataset_version` (int) | `category` (train/validation/test) |
 | `task` | `project` (int) | `status`, `tags`, date range |
+
+## Export Plugin Architecture
+
+Export plugins extend `BaseExporter` from `synapse_sdk.plugins.categories.export.templates.plugin`. Understanding the plugin structure helps when building custom exports or debugging existing ones.
+
+### Plugin Item Structure
+
+The SDK provides each export item with these fields:
+
+```python
+item = {
+    'id': 12345,                    # assignment ID
+    'file': {...},                   # file references (use get_original_file_name())
+    'data': {...},                   # annotation data (DM Schema v1 payload)
+    'task': {'id': 678, 'tags': [...]},  # task metadata
+    'tags': [...],                   # assignment-level tags
+    'data_unit': {
+        'meta': {...},              # DataUnit.meta (filename, category, group, etc.)
+        'files': {
+            'video_1': {'path_original': '...'},  # per-spec file paths
+        },
+    },
+}
+```
+
+### Annotation Data Structure (Video)
+
+For video-type data, annotations are keyed by spec name:
+
+```python
+data['annotations']['video_1']  # list of annotation objects
+```
+
+Each annotation object has a `classification` dict:
+
+```python
+{
+    'classification': {
+        'class': 'object_description',    # classification type
+        'description_kr': '...',          # annotation content
+    }
+}
+```
+
+### Plugin Output Conventions
+
+- **File naming**: Built from the original file stem + a postfix suffix: `{Path(get_original_file_name(result['files'])).stem}_{postfix}.json`
+- **Directory structure**: Output files go into `category`-based subdirectories (using `data_unit_meta['category']` for the subfolder name)
+- **One assignment → multiple files**: Plugins iterate over classification types and create a separate output file for each classification present in the annotation. Not every assignment has all types, so file count per assignment varies.
 
 ## Format Conversion Reference
 
@@ -410,12 +460,129 @@ yolo_export/
 └── classes.txt
 ```
 
+## Database & Model Reference
+
+These are critical details about the Synapse backend data model, discovered through production usage.
+
+### Django Models & Tables
+
+| Model | Table | Key Fields |
+|-------|-------|-----------|
+| `DataUnit` (`data_collection.DataUnit`) | `data_collection_dataunit` | `id`, `data_collection_id`, `meta` (JSONField), `files` |
+| `Task` (`annotation.Task`) | `annotation_task` | `id`, `project_id` (direct FK — no join needed), `data_unit_id`, `data` (JSONField), `workshop_id` |
+| `Workshop` (`hitl.Workshop`) | `hitl_workshop` (NOT `annotation_workshop`) | `id`, `project_id`, `name`, `status` |
+| `Assignment` (`hitl.Assignment`) | `hitl_assignment` | `id`, `task_id`, `status_label`, `status_review`, `data` (JSONField — **this is the annotation data**) |
+| `AssignmentData` (`hitl.AssignmentData`) | `hitl_assignmentdata` | `id`, `assignment_id`, `file`, `checksum`, `size` — **stores files, NOT annotation JSON** |
+| `AssignmentFile` (`hitl.AssignmentFile`) | `hitl_assignmentfile` | File attachments |
+
+### Critical: Where Annotation Data Lives
+
+- **Assignment annotation data** is in `hitl_assignment.data` (a JSONField), NOT in `hitl_assignmentdata`.
+- `AssignmentData` is a misleading name — it stores binary file references (file path, checksum, size), not annotation JSON.
+- The `data` field on `hitl_assignment` contains the full DM Schema v1 annotation payload.
+
+### Export Rule: Always Export Data Only
+
+When exporting annotation files, **write only the `data` field contents** — do NOT wrap it in metadata (id, task_id, status, etc.). Each exported `.json` file should contain the raw DM Schema v1 annotation payload directly. This keeps exports clean and compatible with downstream tools and converters.
+
+### psycopg2 JSONB Gotcha
+
+When fetching JSONB fields via Django's raw SQL cursor (`connection.cursor()`), psycopg2 returns the value as a **Python string**, not a parsed dict. Always parse it before writing:
+
+```python
+data = json.loads(data_str) if isinstance(data_str, str) else data_str
+```
+
+### DataUnit Meta Structure
+
+`DataUnit.meta` is a JSONField. A typical example:
+```json
+{
+    "fps": 29.97,
+    "group": "B82026Z",
+    "ratio": "16:9",
+    "width": 1920,
+    "height": 1080,
+    "bitrate": 15,
+    "category": "1. 자연",
+    "duration": "00:01:00",
+    "filename": "B82026Z_2018_HD_6_0001.mp4",
+    "created_at": "2025-11-30T04:21:03.775098",
+    "dataset_key": "1. 자연/B82026Z_B82026Z_2018_HD_6_0001",
+    "origin_file_stem": "B82026Z_2018_HD_6_0001",
+    "origin_file_extension": ".mp4"
+}
+```
+
+**Identifying data units by filename**: Use `meta->>'filename'` (minus extension) as the reliable identifier, NOT `origin_file_stem`. The `origin_file_stem` field is inconsistent — sometimes it contains the full name (e.g., `B82026Z_2018_HD_6_0001`), other times just a short fragment (e.g., `0003`). To match reliably:
+
+```sql
+replace(meta->>'filename', meta->>'origin_file_extension', '') as file_stem
+```
+
+**Using `meta.category` for output paths**: When creating category-based directory structures, use the `meta->>'category'` value directly (e.g., `"1. 자연"`, `"2. 도시"`). Do not remap or strip the number prefix — downstream tools and existing exports expect the exact DB value.
+
+**Warning**: Django's JSONField `__in` lookup does NOT work for nested key filtering (e.g., `meta__origin_file_stem__in=[...]` returns 0 results). Use raw SQL instead.
+
+### Project Info
+
+- Project model key for the name field is `title`, not `name` (i.e., `project.get('title')` via API, not `project.get('name')`)
+- Task has a **direct `project_id`** foreign key — no need to join through workshop to filter by project
+
+## SDK API Behavior
+
+### Return Types
+
+| Method | `list_all=False` (default) | `list_all=True` |
+|--------|---------------------------|-----------------|
+| `client.list_assignments()` | `dict` with `count`, `results` | `(generator, count)` tuple |
+| `client.list_tasks()` | `dict` with `count`, `results` | `(generator, count)` tuple |
+| `client.list_data_units()` | `dict` with `count`, `results` | `(generator, count)` tuple |
+
+The generator yields individual item dicts. Example:
+```python
+gen, count = client.list_data_units(params={...}, list_all=True)
+for du in gen:
+    print(du['id'], du.get('meta', {}).get('origin_file_stem'))
+```
+
+### Pagination Limits
+
+- **Page size is capped at 100** for data units — the server ignores larger `limit` values
+- `list_data_units(page_size=500)` still returns only 100 items per page
+- The `search` parameter works on tasks but **does NOT work on data units**
+- Task search does NOT match on data unit file names/metadata
+
+### Performance: Paginated API is Slow
+
+For large datasets (100K+ data units), the paginated API is extremely slow:
+- 134K data units at 100/page = 1,343 sequential API calls
+- Each page takes ~4s from a local client, ~2-4s from Ray
+- **Full scan via API: 30-90 minutes**
+
+Always use the export plugin system (`BaseExporter` + `synapse script submit`) for large datasets — the SDK handles pagination internally.
+
+### `synapse script submit` Gotchas
+
+- The command packages the **working directory** as a runtime env for Ray
+- **Never submit from `/tmp`** — it may contain files with restricted permissions (e.g., `snap-private-tmp/.gitignore`) that cause `Permission denied` errors
+- Always create a clean subdirectory or use the project directory
+
 ## Large Dataset Strategies
 
-For projects with 10,000+ annotations:
+For projects with 10,000+ data units, **do NOT scan all data units via the API**. Instead:
 
-1. **Use `list_all=True`**: SDK handles pagination automatically
-2. **Process in batches**: Write output files in chunks, don't hold everything in memory
-3. **Stream processing**: Iterate over results with a generator
-4. **Use job mode**: Submit via `synapse script submit` for long-running exports
-5. **Report progress**: Print status every N items so the user can monitor via `synapse script logs`
+### Approach 1: Export Plugin (Recommended)
+
+Use the export plugin system. `BaseExporter` receives pre-fetched items via `params['results']` — the SDK handles all pagination internally. Submit via `synapse script submit`.
+
+See the **Export Plugin Architecture** section above for the item structure and output conventions.
+
+### Approach 2: Streaming with `list_all=True` (Small datasets only)
+
+Only use for smaller datasets (< 10K items):
+```python
+gen, count = client.list_data_units(params={...}, list_all=True)
+for du in gen:
+    # process item...
+```
