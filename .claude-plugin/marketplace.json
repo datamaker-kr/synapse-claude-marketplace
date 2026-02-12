@@ -54,6 +54,36 @@
       "keywords": ["tdd", "documentation", "pr-management", "mermaid"],
       "category": "development",
       "tags": ["backend", "django", "drf", "tdd", "documentation", "mermaid", "pr-automation"]
+    },
+    {
+      "name": "synapse-upload",
+      "source": "./plugins/synapse-upload",
+      "description": "AI-powered data upload for Synapse — map files to data collection specs and upload via CLI",
+      "version": "1.0.0",
+      "author": {
+        "name": "datamaker-kr Organization"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["synapse", "upload", "data-collection", "dataset"],
+      "category": "data-management",
+      "tags": ["synapse", "upload", "data-collection", "dataset"]
+    },
+    {
+      "name": "synapse-export",
+      "source": "./plugins/synapse-export",
+      "description": "AI-powered annotation export for Synapse — export assignments, ground truth, and tasks in COCO, YOLO, VOC, JSON formats",
+      "version": "1.0.0",
+      "author": {
+        "name": "datamaker-kr Organization"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["synapse", "export", "coco", "yolo", "annotations", "dataset"],
+      "category": "data-management",
+      "tags": ["synapse", "export", "coco", "yolo", "annotations", "dataset", "ground-truth"]
     }
   ]
 }
