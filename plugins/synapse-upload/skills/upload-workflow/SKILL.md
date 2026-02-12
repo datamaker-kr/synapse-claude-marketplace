@@ -69,14 +69,48 @@ Each data unit must have files matching the **required** specs. Optional specs m
 
 ### Data Units
 
-A **data unit** is one logical record in a data collection. It contains one file per spec:
+A **data unit** is one logical record in a data collection. It contains one file per spec, plus optional **metadata**:
 
 ```
 Data Unit "patient_001":
   image_1 → patient_001/scan.png
   label_1 → patient_001/annotations.json
   dicom_1 → patient_001/original.dcm
+  meta    → {"patient_id": "P001", "age": 45, "diagnosis": "normal"}
 ```
+
+### Data Unit Metadata (`DataUnit.meta`)
+
+Every data unit has a `meta` field — a JSON object for storing arbitrary per-data-unit metadata (patient info, acquisition parameters, source filenames, custom tags, etc.).
+
+**Key facts:**
+- `meta` is a `dict[str, Any]` passed via `DataUnitCreateRequest.meta` when creating data units
+- If the data collection defines a **`data_unit_meta_schema`** (JSON Schema), the backend validates every data unit's `meta` against it — invalid meta will be rejected
+- The schema is stored in `DataCollection.meta['data_unit_meta_schema']`
+
+**Always check for a meta schema** when fetching the data collection:
+
+```python
+dc = client.get_data_collection(DC_ID)
+meta_schema = dc.get('meta', {}).get('data_unit_meta_schema')
+if meta_schema:
+    print(f"Data unit meta schema: {json.dumps(meta_schema, indent=2)}")
+    # Example schema:
+    # {"type": "object", "required": ["patient_id"], "properties": {
+    #     "patient_id": {"type": "string"},
+    #     "age": {"type": "integer"},
+    #     "diagnosis": {"type": "string"}
+    # }}
+```
+
+If a schema exists, **you must inform the user** about the required/expected fields and ensure the upload script populates `meta` accordingly. Sources of metadata:
+- **Excel file** (`--metadata`): Each row provides metadata keyed by a grouping column
+- **Directory names**: e.g., `{"name": "patient_001"}`
+- **Filename patterns**: Parse structured filenames (e.g., `P001_45_male.png` → `{"patient_id": "P001", "age": 45, "sex": "male"}`)
+- **User-provided values**: Ask the user interactively what metadata to set
+- **Sidecar files**: JSON/YAML files alongside the data files
+
+If no schema exists, `meta` is still useful — populate it with at least a descriptive `name` or `dataset_key` for traceability.
 
 ### Storage
 
@@ -384,13 +418,13 @@ Source C (Local):      /tmp/converted/masks/*.png
 ## Upload Pipeline Stages
 
 1. **Initialize** — Validate storage access, resolve paths (local or cloud via `get_pathlib`)
-2. **Analyze Collection** — Fetch data collection specs from backend API
+2. **Analyze Collection** — Fetch data collection specs and `data_unit_meta_schema` from backend API
 3. **Explore Source** — Understand file structure (adapt method to path type)
 4. **Organize Files** — Map files to specs, group into data units
-5. **Extract Metadata** — Read Excel metadata if provided, merge into data units
-6. **Validate** — Check all required specs are satisfied per data unit
+5. **Prepare Metadata** — Check if `data_unit_meta_schema` exists; gather metadata from Excel, filenames, sidecar files, or user input; validate against schema
+6. **Validate** — Check all required specs are satisfied per data unit; validate meta against schema
 7. **Upload** — Transfer files to storage via presigned URLs (parallel workers)
-8. **Create Data Units** — Register uploaded files as data units in the backend
+8. **Create Data Units** — Register uploaded files as data units with `meta` populated
 9. **Report** — Summary of results
 
 ## SDK Helper Snippets
@@ -444,7 +478,7 @@ print(f\"Default storage — ID {default['id']}: {default.get('name', 'Unnamed')
 
 **Note**: The SDK does not have a `list_storages` method. Available methods are `get_default_storage()` and `get_storage(id)`. If the user needs help finding a storage, show them the default storage and ask if that's the right one, or ask them to provide the ID directly.
 
-### Fetching Data Collection Specs
+### Fetching Data Collection Specs & Meta Schema
 
 ```bash
 python3 -c "
@@ -458,12 +492,16 @@ client = BackendClient(
     access_token=cfg['access_token'],
 )
 dc = client.get_data_collection(<DATA_COLLECTION_ID>)
+meta_schema = dc.get('meta', {}).get('data_unit_meta_schema')
 print(json.dumps({
     'name': dc.get('name', ''),
     'file_specifications': dc.get('file_specifications', []),
+    'data_unit_meta_schema': meta_schema,
 }, indent=2, default=str))
 "
 ```
+
+If `data_unit_meta_schema` is not `null`, inform the user about required metadata fields and ensure the upload script populates `meta` accordingly.
 
 ## Upload Parameters (UploadParams)
 
@@ -520,10 +558,12 @@ specs = dc['file_specifications']
 result = client.upload_files_bulk(all_file_paths, max_workers=32)
 
 # 4. Create data units in batches
+#    'meta' is optional but recommended — if the collection has a
+#    data_unit_meta_schema, meta MUST conform to it or creation will fail.
 client.create_data_units([{
     'data_collection': <DC_ID>,
     'files': {spec_name: {'checksum': checksum, 'path': filename}},
-    'meta': {'name': group_key},
+    'meta': {'name': group_key, ...},  # populate from Excel, filenames, user input, etc.
 }])
 ```
 
@@ -531,9 +571,9 @@ client.create_data_units([{
 
 | Method | Purpose |
 |--------|---------|
-| `client.get_data_collection(id)` | Fetch specs (extensions, required/optional) |
+| `client.get_data_collection(id)` | Fetch specs, meta schema (`dc['meta']['data_unit_meta_schema']`) |
 | `client.upload_files_bulk(paths, max_workers=32)` | Upload files via presigned URLs with parallel workers |
-| `client.create_data_units(data)` | Link uploaded files to data collection as data units |
+| `client.create_data_units(data)` | Link uploaded files to data collection as data units (each entry can include `meta`) |
 | `client.get_default_storage()` | Get default storage config |
 | `client.get_storage(id)` | Get specific storage config |
 

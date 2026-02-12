@@ -78,8 +78,11 @@ For **every missing parameter**, use `AskUserQuestion` to ask the user. Walk thr
 **5. Optional Parameters** — After required params are gathered:
 - Ask: "Any additional options?" with choices:
   - Upload with Excel metadata → ask for path
+  - Set data unit metadata → ask what fields/values to attach (if no Excel; useful when meta schema exists)
   - Assign to a project → ask for project ID
   - Just upload → proceed with defaults
+
+**Important**: If the data collection has a `data_unit_meta_schema` (discovered in step 1.3), **proactively tell the user** about the required metadata fields and ask how they want to provide the data. Don't let them discover validation errors at upload time.
 
 ### 1.2 Detect Path Type & Validate
 
@@ -108,7 +111,7 @@ assert root.exists()
 
 For **multi-path mode**, validate each asset path independently — they can be different types.
 
-### 1.3 Fetch Data Collection Specs
+### 1.3 Fetch Data Collection Specs & Meta Schema
 
 ```bash
 python3 -c "
@@ -122,12 +125,16 @@ client = BackendClient(
     access_token=cfg['access_token'],
 )
 dc = client.get_data_collection(<DATA_COLLECTION_ID>)
+meta_schema = dc.get('meta', {}).get('data_unit_meta_schema')
 print(json.dumps({
     'name': dc.get('name', ''),
     'file_specifications': dc.get('file_specifications', []),
+    'data_unit_meta_schema': meta_schema,
 }, indent=2, default=str))
 "
 ```
+
+**If `data_unit_meta_schema` is present**: Inform the user about the required/expected metadata fields. Ask how they want to provide the metadata (Excel, filename patterns, sidecar files, manual input). This is critical — data unit creation will fail if `meta` doesn't conform to the schema.
 
 ### 1.4 Explore Source
 
@@ -215,7 +222,8 @@ Display a clear summary:
   - image_1: /mnt/nas/images (1,247 PNG files) [local]
   - label_1: s3://ml-data/labels (1,247 JSON files) [S3]
 **Target**: Data Collection "CT Scan Dataset" (ID: 2973) → Storage #11
-**Metadata**: meta.xlsx (1,247 rows, columns: patient_id, age, diagnosis)
+**Metadata source**: meta.xlsx (1,247 rows, columns: patient_id, age, diagnosis)
+**Meta schema**: Required: patient_id (string), age (integer); Optional: diagnosis (string)
 
 ### File Specifications
 | Spec     | Required | Extensions    | Source Match | Source Path |
@@ -223,12 +231,19 @@ Display a clear summary:
 | image_1  | Yes      | .png, .jpg    | *.png        | /mnt/nas/images |
 | label_1  | Yes      | .json         | *.json       | s3://ml-data/labels |
 
+### Data Unit Metadata
+- Schema enforced: Yes (patient_id, age required)
+- Source: meta.xlsx → matched by patient_id column
+- Coverage: 1,247/1,247 rows ✓
+
 - Data units: ~1,247
 - Conversions: None
 - Batch size: 50
 
 Proceed? [Yes / Dry-run details / Adjust mapping / Cancel]
 ```
+
+If `data_unit_meta_schema` exists, always include the metadata section in the plan. Warn if metadata coverage is incomplete.
 
 Ask user to confirm before proceeding.
 
@@ -292,7 +307,16 @@ for r in upload_result.results:
     if r.success and r.file_path:
         checksum_by_path[str(r.file_path)] = {'id': r.data_file_id, 'checksum': r.checksum}
 
+# Build metadata lookup — adapt to the metadata source:
+# - Excel: read with openpyxl, key by grouping column
+# - Filename parsing: extract structured fields from filenames
+# - Sidecar files: read JSON/YAML per data unit
+# - Static values: user-provided defaults
+metadata_by_key = {}  # group_key -> {field: value, ...}
+
 # Create data units in batches
+# IMPORTANT: If dc['meta'].get('data_unit_meta_schema') exists,
+# each data unit's meta MUST conform to the schema or creation fails.
 batch = []
 created = 0
 for group_key, files in data_units.items():
@@ -302,10 +326,12 @@ for group_key, files in data_units.items():
         if info:
             du_files[spec_name] = {'checksum': info['checksum'], 'path': str(file_path.name)}
     if du_files:
+        meta = {'name': group_key}
+        meta.update(metadata_by_key.get(group_key, {}))
         batch.append({
             'data_collection': DATA_COLLECTION_ID,
             'files': du_files,
-            'meta': {'name': group_key},
+            'meta': meta,
         })
     if len(batch) >= BATCH_SIZE:
         client.create_data_units(batch)
@@ -322,7 +348,7 @@ print(f"\nDone! Created {created} data units, uploaded {len(all_files)} files.")
 
 **Multi-path adaptation**: For multi-path mode, iterate each asset path independently, collect files per spec, then match by filename stem across paths.
 
-**With metadata**: Read the Excel file with `openpyxl`, build a lookup dict by group key, and add `'meta': {**excel_row}` to each data unit.
+**With metadata**: Read the Excel file with `openpyxl`, build a lookup dict by group key, and merge into each data unit's `meta`. If the collection has a `data_unit_meta_schema`, validate each meta dict against it before submitting (use `jsonschema.validate()` in the script to catch issues early with clear error messages instead of letting the backend reject them in bulk).
 
 ### 3.2 Submit Script
 
@@ -500,14 +526,37 @@ Proceed?
 User: /synapse-upload:upload /data/scans --data-collection 42 --storage 11 --metadata /data/patients.xlsx
 
 Agent: [validates path, fetches specs, explores directory]
+[discovers data_unit_meta_schema: requires patient_id (string), age (integer)]
 [reads Excel: 500 rows, columns: patient_id, age, sex, diagnosis]
 
 ## Upload Plan
 **Source**: /data/scans (500 subdirs) [local]
 **Target**: DC #42 → Storage #11
-**Metadata**: patients.xlsx (500 rows: patient_id, age, sex, diagnosis)
+**Metadata source**: patients.xlsx (500 rows: patient_id, age, sex, diagnosis)
+**Meta schema**: Required: patient_id (string), age (integer) ✓ covered by Excel
 
-Data units: ~500 | Metadata rows match file count
+Data units: ~500 | Metadata rows match file count | Schema fields satisfied ✓
 
 Proceed?
+```
+
+### Example 5: Collection with meta schema but no Excel
+```
+User: /synapse-upload:upload /data/images --data-collection 99 --storage 11
+
+Agent: [validates path, fetches specs]
+This data collection requires metadata on each data unit:
+  - patient_id (string) — required
+  - study_date (string) — required
+
+How would you like to provide this metadata?
+  [AskUserQuestion options: "Excel file", "Parse from filenames", "I'll provide values manually"]
+
+User: Parse from filenames
+
+Agent: Let me look at the filenames...
+Sample: P001_2024-01-15_scan.png, P002_2024-01-16_scan.png
+Pattern: {patient_id}_{study_date}_scan.png — I'll extract both fields.
+
+[proceeds with upload, populating meta from filename parsing]
 ```

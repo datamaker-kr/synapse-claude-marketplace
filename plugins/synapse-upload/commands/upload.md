@@ -125,9 +125,12 @@ If multi-path, ask for each spec's path individually:
 "Any additional options?"
 Options:
   - "Upload with Excel metadata" → ask for the Excel file path
+  - "Set data unit metadata" → ask what metadata to attach (if no Excel; see Step 4 for schema)
   - "Assign to a project" → ask for the project ID
   - "Just upload" → proceed with defaults
 ```
+
+**Note on data unit metadata**: After fetching the data collection in Step 4, if a `data_unit_meta_schema` exists, **proactively inform the user** about the required metadata fields and ask how they want to provide the data (Excel, filename parsing, manual input, etc.). Don't wait for them to discover the validation error at upload time.
 
 **Step 2f: Detect the source path type** by inspecting the scheme:
 
@@ -170,7 +173,7 @@ For storage-relative paths (no scheme), resolve through the storage config to ge
 - Set `use_single_path: false`, `assets: {spec_name: {path: "...", is_recursive: true}}` in params
 - **Each asset path must be validated independently** — they can be different types (one local, one S3)
 
-### Step 4: Fetch Data Collection Specs
+### Step 4: Fetch Data Collection Specs & Meta Schema
 
 ```bash
 python3 -c "
@@ -184,14 +187,24 @@ client = BackendClient(
     access_token=cfg['access_token'],
 )
 dc = client.get_data_collection(<DATA_COLLECTION_ID>)
+meta_schema = dc.get('meta', {}).get('data_unit_meta_schema')
 print(json.dumps({
     'name': dc.get('name', ''),
     'file_specifications': dc.get('file_specifications', []),
+    'data_unit_meta_schema': meta_schema,
 }, indent=2, default=str))
 "
 ```
 
 Parse the response to understand each spec's `name`, `file_type`, `extensions`, and `is_required`.
+
+**Check for `data_unit_meta_schema`**: If the collection has a meta schema, every data unit's `meta` **must** conform to it or creation will be rejected. Tell the user about the required/expected fields and determine where the metadata will come from:
+- Excel file (`--metadata`)
+- Directory/filename patterns
+- Sidecar JSON/YAML files
+- User-provided values
+
+If there's no schema, populate `meta` with at least a descriptive `name` or grouping key for traceability.
 
 ### Step 5: Explore Source
 
@@ -264,13 +277,19 @@ Present the plan:
 **Source**: /data/patient_scans (1,247 subdirectories) [local filesystem]
 **Target**: Data Collection "CT Scan Dataset" (ID: 2973)
 **Storage**: ID 11
-**Metadata**: meta.xlsx (245 rows)
+**Metadata source**: meta.xlsx (245 rows)
+**Meta schema**: Required fields: patient_id (string), age (integer)
 
 ### File Specifications
 | Spec Name | Required | Allowed Extensions | Source Pattern | Source Path |
 |-----------|----------|-------------------|----------------|-------------|
 | image_1   | Yes      | .png, .jpg        | *.png (found)  | /data/patient_scans |
 | label_1   | Yes      | .json             | *.json (found) | /data/patient_scans |
+
+### Data Unit Metadata
+- Schema enforced: Yes (patient_id required, age required)
+- Source: meta.xlsx → matched by filename column
+- Coverage: 245/1,247 rows (warn if mismatch)
 
 ### Grouping
 - Pattern: Each subdirectory = one data unit
@@ -279,6 +298,8 @@ Present the plan:
 
 Proceed with upload? [Yes / Dry-run details / Adjust mapping / Cancel]
 ```
+
+If `data_unit_meta_schema` exists, always show the metadata section in the plan. Warn the user if metadata coverage is incomplete (e.g., Excel has fewer rows than data units).
 
 For multi-path mode, show each spec's source path separately.
 
@@ -352,7 +373,25 @@ for r in upload_result.results:
     if r.success and r.file_path:
         checksum_by_path[str(r.file_path)] = {'id': r.data_file_id, 'checksum': r.checksum}
 
+# Build metadata lookup (adapt source: Excel, filenames, sidecar files, etc.)
+# Example A: from Excel
+# import openpyxl
+# wb = openpyxl.load_workbook('/path/to/meta.xlsx', read_only=True)
+# ws = wb.active
+# headers = [c.value for c in ws[1]]
+# metadata_by_key = {}
+# for row in ws.iter_rows(min_row=2, values_only=True):
+#     row_dict = dict(zip(headers, row))
+#     key = row_dict.pop('filename', row_dict.get('name', ''))
+#     metadata_by_key[key] = row_dict
+
+# Example B: minimal — just use directory name
+metadata_by_key = {}  # group_key -> {field: value}
+
 # Create data units in batches
+# NOTE: If the data collection has a data_unit_meta_schema, meta MUST
+# conform to it. Check dc['meta'].get('data_unit_meta_schema') and
+# populate the required fields accordingly.
 batch = []
 created = 0
 for group_key, files in data_units.items():
@@ -362,10 +401,12 @@ for group_key, files in data_units.items():
         if info:
             du_files[spec_name] = {'checksum': info['checksum'], 'path': str(file_path.name)}
     if du_files:
+        meta = {'name': group_key}
+        meta.update(metadata_by_key.get(group_key, {}))
         batch.append({
             'data_collection': DATA_COLLECTION_ID,
             'files': du_files,
-            'meta': {'name': group_key},
+            'meta': meta,
         })
     if len(batch) >= BATCH_SIZE:
         client.create_data_units(batch)

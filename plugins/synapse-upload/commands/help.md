@@ -20,7 +20,7 @@ The following skills automatically activate based on conversation context:
 
 | Skill | Triggers |
 |-------|----------|
-| **upload-workflow** | "upload", "data collection", "file specifications", "data units", "s3 upload", "multi-path", "excel metadata" |
+| **upload-workflow** | "upload", "data collection", "file specifications", "data units", "s3 upload", "multi-path", "excel metadata", "data unit metadata", "meta schema" |
 | **file-conversion** | "convert", "tiff to png", "file format", "unsupported extension" |
 
 ## Agents (Autonomous)
@@ -116,10 +116,10 @@ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 ## How It Works
 
 1. **Validate** — Check source path accessibility (local or cloud)
-2. **Fetch specs** — Get file specifications from the data collection
+2. **Fetch specs** — Get file specifications and data unit meta schema from the data collection
 3. **Explore** — Examine directory structure (adapted to source type)
-4. **Plan mapping** — Determine file→spec mapping, detect conversions
-5. **Confirm** — Present upload plan for user approval
+4. **Plan mapping** — Determine file→spec mapping, detect conversions, resolve metadata sources
+5. **Confirm** — Present upload plan for user approval (including metadata coverage)
 6. **Execute** — Write upload script and submit via `synapse script submit`
 7. **Report** — Display summary of uploaded files and created data units
 
@@ -131,5 +131,6 @@ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 - Ask about cloud sources: "How do I upload from S3?"
 - Ask about multi-path: "My images and labels are in different directories"
 - Ask about metadata: "I have an Excel file with patient metadata"
+- Ask about data unit meta: "My collection has a meta schema — how do I populate it?"
 
 The relevant skills will automatically load to provide detailed guidance.
