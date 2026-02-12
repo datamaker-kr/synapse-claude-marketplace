@@ -1,0 +1,24 @@
+{
+  "name": "synapse-upload",
+  "version": "1.0.0",
+  "description": "AI-powered data upload for Synapse — map files to data collection specs and upload via CLI",
+  "author": {
+    "name": "datamaker-kr Organization"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": ["synapse", "upload", "data", "dataset", "data-collection"],
+  "commands": [
+    "./commands/help.md",
+    "./commands/upload.md",
+    "./commands/upload-status.md"
+  ],
+  "skills": [
+    "./skills/upload-workflow/SKILL.md",
+    "./skills/file-conversion/SKILL.md"
+  ],
+  "agents": [
+    "./agents/upload-assistant.md"
+  ]
+}
