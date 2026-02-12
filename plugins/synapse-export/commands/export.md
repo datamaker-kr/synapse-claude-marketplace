@@ -286,6 +286,9 @@ Once the job is submitted, print the job ID and tell the user how to monitor:
 
 ### Check Status Later
   synapse script logs <job-id>
+
+### Stop the Job
+  synapse script stop <job-id>
 ```
 
 If the export output is on the Ray worker, suggest how the user can retrieve it (e.g., `scp`, S3 copy, or re-export to storage).

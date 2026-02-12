@@ -389,6 +389,9 @@ To monitor progress:
 
 To check status later:
   synapse script logs <job-id>
+
+To stop the job:
+  synapse script stop <job-id>
 ```
 
 ## Phase 4: Report

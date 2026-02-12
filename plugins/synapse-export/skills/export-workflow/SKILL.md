@@ -230,10 +230,11 @@ synapse plugin run export --plugin <plugin-code> --mode job --params '{
 }'
 ```
 
-Tell the user how to monitor:
+Tell the user how to monitor and stop:
 ```bash
 synapse plugin job get <job-id>
 synapse plugin job logs <job-id> --follow
+synapse script stop <job-id>
 ```
 
 **When to use plugin-based export:**

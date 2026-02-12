@@ -477,6 +477,9 @@ Once the job is submitted, print the job ID and tell the user how to monitor:
 
 ### Check Status Later
   synapse script logs <job-id>
+
+### Stop the Job
+  synapse script stop <job-id>
 ```
 
 ## Error Handling

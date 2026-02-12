@@ -621,6 +621,9 @@ synapse script logs <job-id> --follow
 
 # Check logs later
 synapse script logs <job-id>
+
+# Stop a running job
+synapse script stop <job-id>
 ```
 
 The script runs on the agent's Ray cluster with auto-injected `SYNAPSE_HOST` and `SYNAPSE_ACCESS_TOKEN` and storage mount access.

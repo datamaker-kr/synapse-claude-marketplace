@@ -12,6 +12,7 @@ Check the status and logs of a running or completed Synapse export job.
 
 - `<job-id>` (required): The job ID returned from the export command
 - `--follow` (optional): Continuously stream logs until the job completes
+- `--stop` (optional): Stop a running job
 
 ## Workflow
 
@@ -27,12 +28,16 @@ synapse script logs <job-id>
 
 # Or stream continuously if --follow
 synapse script logs <job-id> --follow
+
+# Stop a running job
+synapse script stop <job-id>
 ```
 
 For plugin-based exports, use:
 ```bash
 synapse plugin job get <job-id>
 synapse plugin job logs <job-id> --follow
+synapse script stop <job-id>
 ```
 
 ### Step 3: Display Status
