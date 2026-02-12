@@ -30,7 +30,30 @@ The user can also provide all arguments upfront to skip the interactive flow. An
 
 ### Step 1: Validate Prerequisites
 
-Run `synapse doctor` to validate the full setup in one shot:
+Find the `synapse` CLI — try the current shell first, then search for a venv in cwd:
+
+```bash
+synapse --version 2>/dev/null || {
+  VENV_DIR=$(ls -d *venv* .venv 2>/dev/null | head -1)
+  [ -n "$VENV_DIR" ] && source "$VENV_DIR/bin/activate"
+}
+```
+
+Assert version >= 2026.1.39:
+
+```bash
+python3 -c "
+from importlib.metadata import version
+v = version('synapse-sdk')
+parts = [int(x) for x in v.split('.')[:3]]
+assert parts >= [2026, 1, 39], f'synapse-sdk {v} is too old, need >= 2026.1.39'
+print(f'synapse-sdk {v} OK')
+"
+```
+
+If `synapse` is not found and no venv exists, guide the user: `uv pip install "synapse-sdk>=2026.1.39"`
+
+Then validate the environment:
 
 ```bash
 synapse doctor
@@ -41,8 +64,6 @@ This checks:
 - **CLI authentication** — configured host and access token
 - **Token validity** — token is not expired
 - **Agent configuration** — agent is set up
-
-If `synapse` is not installed or not found, guide the user: `uv pip install "synapse-sdk>=2026.1.39"`
 
 If `synapse doctor` reports issues:
 | Doctor Check | Fix |
@@ -475,7 +496,7 @@ If there were failures, list the failed items and suggest remediation.
 | S3/GCS access denied | Check credentials (AWS_ACCESS_KEY_ID, GOOGLE_APPLICATION_CREDENTIALS) |
 | SFTP connection failed | Check host, port, credentials |
 | Storage-relative path not found | Verify storage config and path spelling |
-| synapse CLI not installed | Guide: `uv pip install "synapse-sdk[all]>=2026.1.39"` |
+| synapse CLI not found | Look for `*venv*` in cwd and activate; otherwise guide: `uv pip install "synapse-sdk[all]>=2026.1.39"` |
 | Missing authentication | Guide: `synapse login`, then verify with `synapse doctor` |
 | Data collection not found | Ask user to verify the ID |
 | File spec mismatch | Show which files don't match, suggest adjustments or conversion |

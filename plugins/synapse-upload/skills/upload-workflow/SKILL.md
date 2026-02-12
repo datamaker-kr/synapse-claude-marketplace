@@ -16,7 +16,34 @@ This workflow is designed to be **fully interactive**. When the user invokes the
 
 ## Prerequisites Validation
 
-Before starting any upload workflow, run `synapse doctor` to verify the environment:
+Before starting any upload workflow, ensure the `synapse` CLI is available and validate the environment.
+
+### Finding synapse CLI
+
+```bash
+# 1. Try the current shell first (venv may already be activated)
+synapse --version
+
+# 2. If not found, search for a venv directory in cwd
+ls -d *venv* .venv 2>/dev/null
+# Activate the first match, e.g.: source .venv/bin/activate
+```
+
+If no venv is found and `synapse` is not on PATH, guide the user to activate their environment or install: `uv pip install "synapse-sdk>=2026.1.39"`
+
+### Assert version
+
+```bash
+python3 -c "
+from importlib.metadata import version
+v = version('synapse-sdk')
+parts = [int(x) for x in v.split('.')[:3]]
+assert parts >= [2026, 1, 39], f'synapse-sdk {v} is too old, need >= 2026.1.39'
+print(f'synapse-sdk {v} OK')
+"
+```
+
+### Validate environment
 
 ```bash
 synapse doctor
@@ -30,7 +57,6 @@ This validates in one shot:
 
 **Required**: Authentication and token checks must pass. MCP warnings are non-blocking for uploads.
 
-If `synapse` is not installed: `uv pip install "synapse-sdk>=2026.1.39"`
 If auth fails: `synapse login` to re-authenticate.
 
 ## Key Concepts

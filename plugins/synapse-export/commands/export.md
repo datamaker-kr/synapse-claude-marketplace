@@ -31,11 +31,35 @@ The user can also provide all arguments upfront to skip the interactive flow. An
 
 ### Step 1: Validate Prerequisites
 
+Find the `synapse` CLI — try the current shell first, then search for a venv in cwd:
+
+```bash
+synapse --version 2>/dev/null || {
+  VENV_DIR=$(ls -d *venv* .venv 2>/dev/null | head -1)
+  [ -n "$VENV_DIR" ] && source "$VENV_DIR/bin/activate"
+}
+```
+
+Assert version >= 2026.1.39:
+
+```bash
+python3 -c "
+from importlib.metadata import version
+v = version('synapse-sdk')
+parts = [int(x) for x in v.split('.')[:3]]
+assert parts >= [2026, 1, 39], f'synapse-sdk {v} is too old, need >= 2026.1.39'
+print(f'synapse-sdk {v} OK')
+"
+```
+
+If `synapse` is not found and no venv exists, guide the user: `uv pip install "synapse-sdk>=2026.1.39"`
+
+Then validate the environment:
+
 ```bash
 synapse doctor
 ```
 
-If `synapse` is not installed: `uv pip install "synapse-sdk>=2026.1.39"`
 Do not proceed until authentication and token checks pass.
 
 ### Step 2: Gather Parameters (Interactive Wizard)
@@ -275,7 +299,7 @@ If the export output is on the Ray worker, suggest how the user can retrieve it 
 | GT version not found | Ask user to verify the GT dataset version ID |
 | No assignments/tasks found | Check filter criteria, suggest broader filters |
 | Format not compatible with annotation type | Warn user (e.g., YOLO doesn't support polygons natively) |
-| synapse CLI not installed | Guide: `uv pip install "synapse-sdk>=2026.1.39"` |
+| synapse CLI not found | Look for `*venv*` in cwd and activate; otherwise guide: `uv pip install "synapse-sdk>=2026.1.39"` |
 | Missing authentication | Guide: `synapse login`, verify with `synapse doctor` |
 | Script execution failed | Check logs, suggest fixes |
 | Partial failure | Report progress, offer to retry |

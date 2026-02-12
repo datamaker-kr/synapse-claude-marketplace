@@ -84,5 +84,5 @@ Present a clear summary:
 | Error | Action |
 |-------|--------|
 | Job not found | Ask user to verify the job ID |
-| synapse CLI not available | Guide: `uv pip install "synapse-sdk>=2026.1.39"` |
+| synapse CLI not available | Look for `*venv*` in cwd and activate; otherwise guide: `uv pip install "synapse-sdk>=2026.1.39"` |
 | Access denied | Run `synapse login` to re-authenticate |

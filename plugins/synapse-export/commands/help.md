@@ -39,7 +39,14 @@ The following skills automatically activate based on conversation context:
 ### Environment Setup
 
 ```bash
-# Install synapse CLI
+# Try the current shell first (venv may already be activated)
+synapse --version
+
+# If not found, look for a venv in cwd and activate it
+ls -d *venv* .venv 2>/dev/null
+source .venv/bin/activate  # or whichever venv dir was found
+
+# If no venv exists, install manually
 uv pip install "synapse-sdk[all]>=2026.1.39"
 
 # Authenticate

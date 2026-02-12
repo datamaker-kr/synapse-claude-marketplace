@@ -34,7 +34,30 @@ When arguments ARE provided upfront, skip the corresponding interactive steps. A
 
 ## Phase 0: Validate Prerequisites
 
-Before anything else, run `synapse doctor` to verify the environment:
+First, ensure the `synapse` CLI is available:
+
+```bash
+# Try the current shell (venv may already be activated)
+synapse --version 2>/dev/null || {
+  # Search for a venv in cwd and activate it
+  VENV_DIR=$(ls -d *venv* .venv 2>/dev/null | head -1)
+  [ -n "$VENV_DIR" ] && source "$VENV_DIR/bin/activate"
+}
+```
+
+Assert the SDK version is sufficient:
+
+```bash
+python3 -c "
+from importlib.metadata import version
+v = version('synapse-sdk')
+parts = [int(x) for x in v.split('.')[:3]]
+assert parts >= [2026, 1, 39], f'synapse-sdk {v} is too old, need >= 2026.1.39'
+print(f'synapse-sdk {v} OK')
+"
+```
+
+Then validate the environment:
 
 ```bash
 synapse doctor
@@ -42,7 +65,7 @@ synapse doctor
 
 This checks config file, CLI authentication, token validity, and agent configuration in one shot. **Do not proceed if authentication or token checks fail.** MCP warnings are non-blocking.
 
-If `synapse` is not installed: `uv pip install "synapse-sdk>=2026.1.39"`
+If `synapse` is not on PATH and no venv found: guide user to activate their environment or install with `uv pip install "synapse-sdk>=2026.1.39"`
 If auth fails: `synapse login`
 
 ## Phase 1: Understand
@@ -389,6 +412,7 @@ If the upload fails or has partial failures:
 
 | Scenario | Recovery |
 |----------|----------|
+| synapse CLI not found | Look for `*venv*` in cwd and activate; otherwise guide: `uv pip install "synapse-sdk>=2026.1.39"` |
 | Local path doesn't exist | Ask user to verify path |
 | S3 access denied | Check AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, bucket policy |
 | GCS access denied | Check GOOGLE_APPLICATION_CREDENTIALS |
