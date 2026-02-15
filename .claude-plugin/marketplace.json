@@ -84,6 +84,21 @@
       "keywords": ["synapse", "export", "coco", "yolo", "annotations", "dataset"],
       "category": "data-management",
       "tags": ["synapse", "export", "coco", "yolo", "annotations", "dataset", "ground-truth"]
+    },
+    {
+      "name": "synapse-product",
+      "source": "./plugins/synapse-product",
+      "description": "Synapse Product Master — 제품 정의, 제품 기획 guardrail 및 guideline을 제공하는 플러그인",
+      "version": "1.0.0",
+      "author": {
+        "name": "datamaker-kr Organization"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["synapse", "product", "guardrails", "guidelines", "product-master", "planning"],
+      "category": "product",
+      "tags": ["synapse", "product-master", "guardrails", "guidelines", "product-definition"]
     }
   ]
 }

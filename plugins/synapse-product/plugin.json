@@ -1,0 +1,23 @@
+{
+  "name": "synapse-product",
+  "version": "1.0.0",
+  "description": "Synapse Product Master — 제품 정의, 제품 기획 guardrail 및 guideline을 제공하는 플러그인",
+  "author": {
+    "name": "datamaker-kr Organization"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": ["synapse", "product", "guardrails", "guidelines", "product-master", "planning"],
+  "commands": [
+    "./commands/help.md",
+    "./commands/product-check.md"
+  ],
+  "skills": [
+    "./skills/product-definition/SKILL.md",
+    "./skills/product-guardrails/SKILL.md"
+  ],
+  "agents": [
+    "./agents/product-master.md"
+  ]
+}
