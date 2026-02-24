@@ -1,0 +1,21 @@
+{
+  "name": "sdd-helper",
+  "version": "1.0.0",
+  "description": "Spec-Driven Development를 쉽게 도입할 수 있도록 도와주는 경량 SDD 워크플로우 플러그인. 요구사항 작성부터 기술 명세, 구현 계획까지 자동화합니다.",
+  "author": {
+    "name": "Datamaker"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": ["sdd", "spec-driven-development", "requirements", "specification", "planning", "workflow"],
+  "skills": [
+    "./skills/init-specs/SKILL.md",
+    "./skills/specify-with-requirements/SKILL.md",
+    "./skills/plan-with-specs/SKILL.md",
+    "./skills/update-requirements/SKILL.md"
+  ],
+  "agents": [
+    "./agents/spec-manager/SKILL.md"
+  ]
+}

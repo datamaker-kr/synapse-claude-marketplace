@@ -9,9 +9,28 @@
 
 ### Added
 
+- `sdd-helper` 플러그인 추가 (v1.0.0)
+  - 4개 스킬: init-specs, specify-with-requirements, plan-with-specs, update-requirements
+  - 1개 에이전트: spec-manager
+  - Spec-Driven Development 경량 워크플로우 지원
+  - 한국어 README 포함
+
 ### Changed
 
+- 마켓플레이스 버전 1.2.0으로 업데이트
+
 ### Fixed
+
+### 등록된 플러그인
+
+| 플러그인 | 버전 | 설명 |
+|---------|------|------|
+| synapse-plugin-helper | 1.0.0 | Synapse SDK 플러그인 개발 도구 |
+| platform-dev-team-common | 1.0.0 | TDD, 문서 관리, PR 자동화 플러그인 |
+| speckit-helper | 1.0.0 | 명세 기반 개발(SDD) 플러그인 |
+| synapse-upload | 1.0.0 | AI 기반 Synapse 데이터 업로드 |
+| synapse-export | 1.0.0 | AI 기반 Synapse 어노테이션 내보내기 |
+| sdd-helper | 1.0.0 | SDD 경량 워크플로우 플러그인 |
 
 ## [1.1.1] - 2026-02-06
 
