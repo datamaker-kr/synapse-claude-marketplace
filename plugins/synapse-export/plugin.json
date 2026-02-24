@@ -1,0 +1,23 @@
+{
+  "name": "synapse-export",
+  "version": "1.0.0",
+  "description": "AI-powered data export from Synapse — export annotations, ground truth, and tasks in any format",
+  "author": {
+    "name": "datamaker-kr Organization"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": ["synapse", "export", "annotation", "ground-truth", "coco", "yolo", "dataset"],
+  "commands": [
+    "./commands/help.md",
+    "./commands/export.md",
+    "./commands/export-status.md"
+  ],
+  "skills": [
+    "./skills/export-workflow/SKILL.md"
+  ],
+  "agents": [
+    "./agents/export-assistant.md"
+  ]
+}

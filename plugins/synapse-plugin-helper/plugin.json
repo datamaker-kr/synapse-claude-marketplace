@@ -19,7 +19,8 @@
     "./commands/debug.md",
     "./commands/update-config.md",
     "./commands/dry-run.md",
-    "./commands/publish.md"
+    "./commands/publish.md",
+    "./commands/migrate-plugin-to-server.md"
   ],
   "skills": [
     "./skills/action-development/SKILL.md",
