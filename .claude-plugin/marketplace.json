@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Official Claude Code plugin marketplace for Synapse Products development",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -54,6 +54,21 @@
       "keywords": ["tdd", "documentation", "pr-management", "mermaid"],
       "category": "development",
       "tags": ["backend", "django", "drf", "tdd", "documentation", "mermaid", "pr-automation"]
+    },
+    {
+      "name": "sdd-helper",
+      "source": "./plugins/sdd-helper",
+      "description": "Spec-Driven Development를 쉽게 도입할 수 있도록 도와주는 경량 SDD 워크플로우 플러그인",
+      "version": "1.0.0",
+      "author": {
+        "name": "Datamaker"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["sdd", "spec-driven-development", "requirements", "specification", "planning"],
+      "category": "development",
+      "tags": ["sdd", "requirements", "specification", "planning", "workflow"]
     }
   ]
 }
