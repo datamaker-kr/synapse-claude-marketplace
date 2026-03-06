@@ -727,16 +727,16 @@ flowchart LR
 업데이트를 진행할까요? (yes/no/customize)
 ```
 
-### /sync-jira
+### /sync-jira-tickets
 
 CHANGELOG.md의 Jira 티켓들을 Git 브랜치 상태에 맞게 동기화합니다.
 
 **사용법**:
 
 ```bash
-/sync-jira                          # unreleased 섹션 동기화
-/sync-jira --section v2026.1.1      # 특정 섹션만 동기화
-/sync-jira --dry-run                # 변경 사항 미리보기
+/sync-jira-tickets                          # unreleased 섹션 동기화
+/sync-jira-tickets --section v2026.1.1      # 특정 섹션만 동기화
+/sync-jira-tickets --dry-run                # 변경 사항 미리보기
 ```
 
 **기능**:
@@ -831,7 +831,7 @@ platform-dev-team-claude-plugin/
 
 ### Jira MCP 서버
 
-Jira 연동 기능(`/sync-jira`)을 사용하려면 Jira MCP 서버를 설정해야 합니다.
+Jira 연동 기능(`/sync-jira-tickets`)을 사용하려면 Jira MCP 서버를 설정해야 합니다.
 
 **1. Jira API Token 발급**
 

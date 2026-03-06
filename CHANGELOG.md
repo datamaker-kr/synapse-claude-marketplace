@@ -22,7 +22,7 @@
     - 보드/스프린트: `jira_get_board`, `jira_get_sprint`
     - CHANGELOG 유틸리티: `changelog_extract_tickets`, `changelog_check_branches`
   - 1개 스킬: `jira-sync` (CHANGELOG 기반 상태 전이 규칙)
-  - 1개 커맨드: `/sync-jira` (Git 브랜치 상태에 따른 Jira 티켓 일괄 동기화)
+  - 1개 커맨드: `/sync-jira-tickets` (Git 브랜치 상태에 따른 Jira 티켓 일괄 동기화)
 
 ### Changed
 

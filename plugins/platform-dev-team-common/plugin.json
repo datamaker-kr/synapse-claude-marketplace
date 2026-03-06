@@ -14,7 +14,7 @@
     "./commands/update-pr-desc.md",
     "./commands/update-docs.md",
     "./commands/add-changelog.md",
-    "./commands/sync-jira.md"
+    "./commands/sync-jira-tickets.md"
   ],
   "skills": [
     "./skills/changelog-manager/SKILL.md",

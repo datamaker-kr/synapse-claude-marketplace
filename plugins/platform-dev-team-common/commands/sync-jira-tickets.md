@@ -27,10 +27,10 @@ description: 현재 프로젝트의 CHANGELOG.md에 있는 Jira 티켓들을 Git
 ## 사용법
 
 ```
-/sync-jira
-/sync-jira --section unreleased
-/sync-jira --section v2026.1.1
-/sync-jira --dry-run
+/sync-jira-tickets
+/sync-jira-tickets --section unreleased
+/sync-jira-tickets --section v2026.1.1
+/sync-jira-tickets --dry-run
 ```
 
 ## 옵션
