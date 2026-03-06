@@ -23,12 +23,26 @@
     - CHANGELOG 유틸리티: `changelog_extract_tickets`, `changelog_check_branches`
   - 1개 스킬: `jira-sync` (CHANGELOG 기반 상태 전이 규칙)
   - 1개 커맨드: `/sync-jira-tickets` (Git 브랜치 상태에 따른 Jira 티켓 일괄 동기화)
+- `synapse-export` 플러그인 README.md 추가
+  - 개요, 설치, 명령어, 스킬, 에이전트, 빠른 시작, 내보내기 대상/형식, 문제 해결
+- `synapse-upload` 플러그인 README.md 추가
+  - 개요, 설치, 명령어, 스킬, 에이전트, 빠른 시작, 소스 유형, 업로드 모드, 파일 변환, DataUnit 구조, 문제 해결
+- `docs/CONTRIBUTING.md` 기여 가이드 추가
+  - 기존 플러그인 기여 방법 (버그 리포트, PR 작성)
+  - 새 플러그인 추가 가이드 (디렉토리 구조, plugin.json, README 필수 섹션)
+  - 리뷰 프로세스, 로컬 테스트 방법
 
 ### Changed
 
 - 마켓플레이스 버전 1.2.0으로 업데이트
+- 루트 README.md 플러그인 테이블 확장 (2개 → 6개)
+  - synapse-export, synapse-upload, speckit-helper, sdd-helper 상세 섹션 추가
+- AGENTS.md에 플러그인 문서화 필수 규칙 추가
+  - README 필수, 필수 섹션, 루트 README 등록, 한글 문서, plugin.json 정합성
 
-### Fixed
+### Removed
+
+- `docs/images/README.md` 미사용 스크린샷 가이드 삭제 (스크린샷 미생성, 참조 문서 없음)
 
 ### 등록된 플러그인
 
