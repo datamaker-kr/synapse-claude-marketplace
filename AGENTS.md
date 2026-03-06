@@ -33,6 +33,14 @@
 - PRs should include: a brief summary, related issue link (if any), and commands run.
 - If you change command behavior, update `README.md` and the corresponding file in `commands/`.
 
+## Plugin Documentation Requirements
+- 모든 플러그인은 `plugins/<name>/README.md`를 반드시 포함해야 합니다.
+- README 필수 섹션: 개요, 설치(사전 요구사항 테이블), 명령어, 스킬, 에이전트, 빠른 시작, 라이선스.
+- 새 플러그인 추가 시 루트 `README.md`의 "사용 가능한 플러그인" 테이블에 반드시 등록해야 합니다.
+- 문서는 한글로 작성합니다 (코드 예시, 명령어, 변수명 제외).
+- `plugin.json`의 `commands`, `skills`, `agents` 목록은 실제 파일과 일치해야 합니다.
+- 기여 가이드: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)를 참조하세요.
+
 ## Security & Configuration Tips
 - Do not commit secrets; reference env vars in examples (`SYNAPSE_TOKEN`) instead.
 - Keep `plugin.json` metadata accurate and avoid introducing local paths or credentials.
