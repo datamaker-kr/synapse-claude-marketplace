@@ -14,6 +14,15 @@
   - 1개 에이전트: spec-manager
   - Spec-Driven Development 경량 워크플로우 지원
   - 한국어 README 포함
+- `platform-dev-team-common` 플러그인에 Jira 연동 기능 추가 (v1.1.0)
+  - Jira MCP Server: TypeScript 기반 MCP 서버 (11개 도구)
+    - 티켓 CRUD: `jira_get_ticket`, `jira_search_tickets`, `jira_create_ticket`, `jira_update_ticket`
+    - 상태 전이: `jira_list_transitions`, `jira_transition`
+    - 커스텀 필드: `jira_update_field`
+    - 보드/스프린트: `jira_get_board`, `jira_get_sprint`
+    - CHANGELOG 유틸리티: `changelog_extract_tickets`, `changelog_check_branches`
+  - 1개 스킬: `jira-sync` (CHANGELOG 기반 상태 전이 규칙)
+  - 1개 커맨드: `/sync-jira-tickets` (Git 브랜치 상태에 따른 Jira 티켓 일괄 동기화)
 - `synapse-export` 플러그인 README.md 추가
   - 개요, 설치, 명령어, 스킬, 에이전트, 빠른 시작, 내보내기 대상/형식, 문제 해결
 - `synapse-upload` 플러그인 README.md 추가
@@ -40,7 +49,7 @@
 | 플러그인 | 버전 | 설명 |
 |---------|------|------|
 | synapse-plugin-helper | 1.0.0 | Synapse SDK 플러그인 개발 도구 |
-| platform-dev-team-common | 1.0.0 | TDD, 문서 관리, PR 자동화 플러그인 |
+| platform-dev-team-common | 1.1.0 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
 | speckit-helper | 1.0.0 | 명세 기반 개발(SDD) 플러그인 |
 | synapse-upload | 1.0.0 | AI 기반 Synapse 데이터 업로드 |
 | synapse-export | 1.0.0 | AI 기반 Synapse 어노테이션 내보내기 |

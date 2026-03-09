@@ -15,6 +15,8 @@
 - **synapse-backend**: 주요 백엔드 API 서버
 - **synapse-workspace**: 워크스페이스 관리 서비스
 - **synapse-annotator**: 어노테이션 서비스
+- **synapse-sdk**: SDK 패키지
+- **synapse-agent**: 에이전트 서비스
 
 ### 주요 기능
 
@@ -22,6 +24,7 @@
 - **적극적인 문서 관리**: 문서 업데이트가 필요한 시점을 자동으로 감지
 - **PR 관리**: PR 제목과 포괄적인 설명을 자동 생성
 - **Mermaid 차트**: 엄격한 규칙을 따르는 라이트/다크 모드 호환 다이어그램 생성
+- **Jira 연동**: CHANGELOG 기반 Jira 티켓 상태 자동 동기화
 - **이중 언어 지원**: 모든 커맨드에서 한국어와 영어 지원
 
 ## 설치
@@ -724,6 +727,28 @@ flowchart LR
 업데이트를 진행할까요? (yes/no/customize)
 ```
 
+### /sync-jira-tickets
+
+CHANGELOG.md의 Jira 티켓들을 Git 브랜치 상태에 맞게 동기화합니다.
+
+**사용법**:
+
+```bash
+/sync-jira-tickets                          # unreleased 섹션 동기화
+/sync-jira-tickets --section v2026.1.1      # 특정 섹션만 동기화
+/sync-jira-tickets --dry-run                # 변경 사항 미리보기
+```
+
+**기능**:
+
+- CHANGELOG.md에서 티켓 ID 자동 추출
+- Git 브랜치(main, staging, production) 포함 여부 확인
+- 상태 전이 규칙에 따라 Jira 상태 자동 업데이트
+- staging 배포 시 커스텀 필드 자동 변경
+- dry-run 모드로 안전하게 미리보기
+
+**사전 요구사항**: Jira MCP 서버 설정 필요 (아래 "Jira MCP 서버" 섹션 참조)
+
 ### /add-changelog
 
 CHANGELOG.md에 변경 이력을 자동으로 추가합니다.
@@ -803,6 +828,34 @@ platform-dev-team-claude-plugin/
 ├── specs/                    # 명세 문서 (gitignored)
 └── README.md                 # 이 파일
 ```
+
+### Jira MCP 서버
+
+Jira 연동 기능(`/sync-jira-tickets`)을 사용하려면 Jira MCP 서버를 설정해야 합니다.
+
+**1. Jira API Token 발급**
+
+[https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)에서 API Token을 생성합니다.
+
+**2. `~/.claude/settings.json`에 추가**
+
+```jsonc
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": ["tsx", "<plugin-path>/mcp-servers/jira/src/index.ts"],
+      "env": {
+        "JIRA_API_TOKEN": "발급받은_토큰",
+        "JIRA_USER_EMAIL": "your@datamaker.io",
+        "JIRA_BASE_URL": "https://datamaker.atlassian.net"
+      }
+    }
+  }
+}
+```
+
+**3. Claude Code 재시작**
 
 ### MCP 서버 구성
 
