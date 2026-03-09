@@ -20,9 +20,9 @@ description: 현재 프로젝트의 CHANGELOG.md에 있는 Jira 티켓들을 Git
 
 ## 사전 조건
 
-- Jira MCP 서버가 설정되어 있어야 합니다 (~/.claude/settings.json)
 - Git 저장소 루트에 CHANGELOG.md가 있어야 합니다
 - Git 저장소여야 합니다
+- Jira MCP 서버가 설정되어 있어야 합니다 (미설정 시 0단계에서 자동 설정 안내)
 
 ## 사용법
 
@@ -42,9 +42,11 @@ description: 현재 프로젝트의 CHANGELOG.md에 있는 Jira 티켓들을 Git
 
 jira-sync 스킬의 상태 전이 규칙을 따라 아래 순서로 실행합니다:
 
-### 0단계: 현재 프로젝트 확인
+### 0단계: 환경 확인 및 Jira MCP 자동 설정
 
-현재 작업 디렉토리(CWD)를 기준으로 프로젝트를 판별합니다.
+현재 작업 디렉토리(CWD)를 기준으로 프로젝트를 판별하고, Jira MCP 서버 연결을 확인합니다.
+
+#### 0-1. 프로젝트 확인
 
 1. Bash로 `pwd`를 실행하여 현재 디렉토리를 확인합니다.
 2. Git 루트를 확인합니다: `git rev-parse --show-toplevel`
@@ -54,6 +56,79 @@ jira-sync 스킬의 상태 전이 규칙을 따라 아래 순서로 실행합니
 이후 모든 도구 호출에서 이 경로를 사용합니다:
 - `changelog_extract_tickets`의 `filePath`: `<git-root>/CHANGELOG.md`
 - `changelog_check_branches`의 `cwd`: `<git-root>`
+
+#### 0-2. Jira MCP 서버 연결 확인
+
+`changelog_extract_tickets` 도구를 테스트 호출하여 Jira MCP 서버 연결을 확인합니다.
+
+- **성공** → 1단계로 진행합니다.
+- **실패 (도구를 찾을 수 없음)** → 아래 자동 설정 절차를 시작합니다.
+
+#### 0-3. Jira MCP 자동 설정 (도구 미발견 시)
+
+사용자에게 자동 설정 여부를 묻습니다:
+
+> Jira MCP 서버가 설정되어 있지 않습니다. 자동으로 설정하시겠습니까?
+> - **예**: 환경변수를 입력받고 자동으로 설정합니다.
+> - **아니오**: 수동 설정 방법을 안내하고 중단합니다. (README 참조: `mcp-servers/jira/README.md`)
+
+**"예" 선택 시 다음 순서로 진행합니다:**
+
+**Step 1) 환경변수 입력 받기**
+
+사용자에게 아래 3가지를 순서대로 질문합니다:
+
+| 변수 | 질문 | 비고 |
+|------|------|------|
+| `JIRA_USER_EMAIL` | "Jira 계정 이메일을 입력하세요 (예: name@datamaker.io)" | |
+| `JIRA_API_TOKEN` | "Jira API 토큰을 입력하세요 (발급: https://id.atlassian.com/manage-profile/security/api-tokens)" | 토큰이 없으면 발급 링크 안내 |
+| `JIRA_BASE_URL` | "Jira URL을 입력하세요 (기본값: https://datamaker.atlassian.net)" | 입력 없으면 기본값 사용 |
+
+**Step 2) 의존성 설치**
+
+플러그인의 Jira MCP 서버 경로를 자동으로 찾아 의존성을 설치합니다:
+
+```bash
+# 플러그인 경로 탐지: 이 커맨드 파일의 위치에서 상대 경로로 추론
+# 커맨드 파일 위치: <plugin-root>/commands/sync-jira-tickets.md
+# MCP 서버 위치: <plugin-root>/mcp-servers/jira/
+find ~/.claude -path "*/platform-dev-team-common/mcp-servers/jira/package.json" -type f 2>/dev/null | head -1
+```
+
+찾은 경로에서 `npm install`을 실행합니다:
+
+```bash
+cd <jira-mcp-path> && npm install
+```
+
+**Step 3) settings.json에 MCP 서버 등록**
+
+`~/.claude/settings.json` 파일을 Read로 읽은 후, `mcpServers` 객체에 `jira` 항목을 추가합니다.
+기존 내용을 유지하면서 아래 항목만 추가합니다:
+
+```jsonc
+"jira": {
+  "command": "npx",
+  "args": ["tsx", "<자동탐지된-절대경로>/mcp-servers/jira/src/index.ts"],
+  "env": {
+    "JIRA_API_TOKEN": "<입력받은 값>",
+    "JIRA_USER_EMAIL": "<입력받은 값>",
+    "JIRA_BASE_URL": "<입력받은 값 또는 기본값>"
+  }
+}
+```
+
+- `~/.claude/settings.json`이 없으면 새로 생성합니다.
+- 이미 `jira` MCP 서버가 등록되어 있으면 덮어쓸지 사용자에게 확인합니다.
+
+**Step 4) 재시작 안내**
+
+설정 완료 후 아래 메시지를 출력하고 **커맨드를 중단합니다**:
+
+> ✅ Jira MCP 서버 설정이 완료되었습니다.
+>
+> Claude Code를 재시작한 후 `/sync-jira-tickets`를 다시 실행하세요.
+> 재시작 후 `/mcp` 명령으로 jira 서버가 목록에 나타나는지 확인할 수 있습니다.
 
 ### 1단계: 티켓 추출
 
