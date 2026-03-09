@@ -1,0 +1,22 @@
+{
+  "name": "synapse-time-series",
+  "version": "1.0.0",
+  "description": "시계열 어노테이터 데이터 임포트 플러그인. ULG 등 raw 시계열 데이터를 dm_schema JSON으로 변환하는 워크플로우를 제공합니다.",
+  "author": { "name": "datamaker-kr Organization" },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": ["synapse", "time-series", "annotator", "ulg", "px4", "dm-schema", "import"],
+  "commands": [
+    "./commands/help.md",
+    "./commands/inspect-ulg.md",
+    "./commands/create-track-config.md",
+    "./commands/convert-ulg.md",
+    "./commands/validate-schema.md"
+  ],
+  "skills": ["./skills/timeseries-data-pipeline/SKILL.md"],
+  "agents": [
+    "./agents/data-pipeline-assistant.md",
+    "./agents/schema-debugger.md"
+  ]
+}
