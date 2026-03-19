@@ -458,6 +458,7 @@ git worktree remove ../platform-dev-team-plugin-feature-x
 - **mermaid-expert**: Mermaid 다이어그램 생성 (색상 규칙 준수)
 - **commit-with-message**: 커밋 메시지 규칙 적용
 - **tdd-workflow**: TDD 방법론 가이드
+- **jira-sync**: CHANGELOG 기반 Jira 티켓 상태 동기화 규칙
 
 ### 디렉토리 구조
 
@@ -471,12 +472,16 @@ platform-dev-team-claude-plugin/
 │   ├── docs-analyzer/         # 문서 갭 분석
 │   ├── docs-bootstrapper/     # 문서 부트스트랩
 │   ├── mermaid-expert/        # 다이어그램 생성
-│   ├── commit-with-message/        # 커밋 메시지 규칙
-│   └── tdd-workflow/          # TDD 가이드
-└── commands/                  # Claude 커맨드
-    ├── update-pr-title.md
-    ├── update-pr-desc.md
-    └── update-docs.md
+│   ├── commit-with-message/   # 커밋 메시지 규칙
+│   ├── tdd-workflow/          # TDD 가이드
+│   └── jira-sync/             # Jira 상태 동기화 규칙
+├── commands/                  # Claude 커맨드
+│   ├── update-pr-title.md
+│   ├── update-pr-desc.md
+│   ├── update-docs.md
+│   └── sync-jira-tickets.md   # Jira 동기화 커맨드
+└── mcp-servers/               # MCP 서버
+    └── jira/                  # Jira MCP 서버 (11개 도구)
 ```
 
 ---
