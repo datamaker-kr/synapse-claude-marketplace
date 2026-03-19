@@ -101,9 +101,9 @@ find ~/.claude -path "*/platform-dev-team-common/mcp-servers/jira/package.json" 
 cd <jira-mcp-path> && npm install
 ```
 
-**Step 3) settings.json에 MCP 서버 등록**
+**Step 3) ~/.claude.json에 MCP 서버 등록**
 
-`~/.claude/settings.json` 파일을 Read로 읽은 후, `mcpServers` 객체에 `jira` 항목을 추가합니다.
+`~/.claude.json` 파일을 Read로 읽은 후, `mcpServers` 객체에 `jira` 항목을 추가합니다.
 기존 내용을 유지하면서 아래 항목만 추가합니다:
 
 ```jsonc
@@ -118,7 +118,7 @@ cd <jira-mcp-path> && npm install
 }
 ```
 
-- `~/.claude/settings.json`이 없으면 새로 생성합니다.
+- `~/.claude.json`이 없으면 새로 생성합니다.
 - 이미 `jira` MCP 서버가 등록되어 있으면 덮어쓸지 사용자에게 확인합니다.
 
 **Step 4) 재시작 안내**
