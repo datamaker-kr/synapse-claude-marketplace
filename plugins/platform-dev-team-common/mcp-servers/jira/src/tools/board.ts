@@ -36,7 +36,10 @@ export function registerBoardTools(server: McpServer) {
       inputSchema: z.object({
         boardId: z.number().optional().describe("보드 ID (활성 스프린트 조회 시)"),
         sprintId: z.number().optional().describe("스프린트 ID (특정 스프린트 조회 시)"),
-      }),
+      }).refine(
+        (data) => data.boardId !== undefined || data.sprintId !== undefined,
+        { message: "boardId 또는 sprintId 중 하나를 제공해야 합니다." }
+      ),
     },
     async ({ boardId, sprintId }) => {
       if (sprintId) {
@@ -45,14 +48,10 @@ export function registerBoardTools(server: McpServer) {
           content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
         };
       }
-      if (boardId) {
-        const data = await jiraAgileFetch(`/board/${boardId}/sprint?state=active`);
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(data.values, null, 2) }],
-        };
-      }
+      // boardId는 refine에 의해 반드시 존재
+      const data = await jiraAgileFetch(`/board/${boardId}/sprint?state=active`);
       return {
-        content: [{ type: "text" as const, text: "boardId 또는 sprintId 중 하나를 제공해야 합니다." }],
+        content: [{ type: "text" as const, text: JSON.stringify(data.values, null, 2) }],
       };
     }
   );
