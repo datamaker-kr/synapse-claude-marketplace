@@ -129,10 +129,19 @@ export function registerChangelogTools(server: McpServer) {
       }),
     },
     async ({ filePath, section }) => {
-      const resolvedPath = await realpath(resolve(filePath));
-      if (!resolvedPath.endsWith("CHANGELOG.md")) {
+      let resolvedPath: string;
+      try {
+        resolvedPath = await realpath(resolve(filePath));
+      } catch {
+        return {
+          content: [{ type: "text" as const, text: `Error: 파일을 찾을 수 없습니다: ${filePath}` }],
+          isError: true,
+        };
+      }
+      if (!resolvedPath.toLowerCase().endsWith("changelog.md")) {
         return {
           content: [{ type: "text" as const, text: "Error: filePath must point to a CHANGELOG.md file" }],
+          isError: true,
         };
       }
       const content = await readFile(resolvedPath, "utf-8");
@@ -162,6 +171,16 @@ export function registerChangelogTools(server: McpServer) {
     },
     async ({ ticketIds, branches, fetch, cwd }) => {
       const workDir = cwd || process.cwd();
+
+      // Git 저장소 검증
+      try {
+        execFileSync("git", ["rev-parse", "--git-dir"], { cwd: workDir, encoding: "utf-8" });
+      } catch {
+        return {
+          content: [{ type: "text" as const, text: `Error: ${workDir}은(는) Git 저장소가 아닙니다.` }],
+          isError: true,
+        };
+      }
 
       if (fetch !== false) {
         try {
