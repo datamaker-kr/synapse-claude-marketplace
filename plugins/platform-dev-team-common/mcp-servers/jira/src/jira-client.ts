@@ -22,10 +22,10 @@ function authHeader(config: JiraConfig): string {
   return "Basic " + Buffer.from(`${config.email}:${config.apiToken}`).toString("base64");
 }
 
-export async function jiraFetch(
+export async function jiraFetch<T = any>(
   path: string,
   options: RequestInit = {}
-): Promise<any> {
+): Promise<T> {
   const config = getConfig();
   const url = `${config.baseUrl}/rest/api/3${path}`;
   const res = await fetch(url, {
@@ -46,10 +46,10 @@ export async function jiraFetch(
   return text ? JSON.parse(text) : null;
 }
 
-export async function jiraAgileFetch(
+export async function jiraAgileFetch<T = any>(
   path: string,
   options: RequestInit = {}
-): Promise<any> {
+): Promise<T> {
   const config = getConfig();
   const url = `${config.baseUrl}/rest/agile/1.0${path}`;
   const res = await fetch(url, {

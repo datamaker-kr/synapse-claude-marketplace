@@ -1,8 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { readFile, realpath } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { resolve } from "node:path";
+
+const execFileAsync = promisify(execFile);
 
 interface TicketEntry {
   id: string;
@@ -101,17 +104,17 @@ function validateBranchName(branch: string): boolean {
   return /^[\w./-]+$/.test(branch);
 }
 
-function gitLogContains(ticketId: string, branch: string, cwd: string): boolean {
+async function gitLogContains(ticketId: string, branch: string, cwd: string): Promise<boolean> {
   if (!validateTicketId(ticketId) || !validateBranchName(branch)) {
     return false;
   }
   try {
-    const result = execFileSync(
+    const { stdout } = await execFileAsync(
       "git",
       ["log", branch, "--oneline", `--grep=${ticketId}`, "--max-count=1"],
       { cwd, encoding: "utf-8" }
     );
-    return result.trim().length > 0;
+    return stdout.trim().length > 0;
   } catch {
     return false;
   }
@@ -129,10 +132,19 @@ export function registerChangelogTools(server: McpServer) {
       }),
     },
     async ({ filePath, section }) => {
-      const resolvedPath = await realpath(resolve(filePath));
-      if (!resolvedPath.endsWith("CHANGELOG.md")) {
+      let resolvedPath: string;
+      try {
+        resolvedPath = await realpath(resolve(filePath));
+      } catch {
+        return {
+          content: [{ type: "text" as const, text: `Error: 파일을 찾을 수 없습니다: ${filePath}` }],
+          isError: true,
+        };
+      }
+      if (!resolvedPath.toLowerCase().endsWith("changelog.md")) {
         return {
           content: [{ type: "text" as const, text: "Error: filePath must point to a CHANGELOG.md file" }],
+          isError: true,
         };
       }
       const content = await readFile(resolvedPath, "utf-8");
@@ -163,20 +175,38 @@ export function registerChangelogTools(server: McpServer) {
     async ({ ticketIds, branches, fetch, cwd }) => {
       const workDir = cwd || process.cwd();
 
+      // Git 저장소 검증
+      try {
+        await execFileAsync("git", ["rev-parse", "--git-dir"], { cwd: workDir, encoding: "utf-8" });
+      } catch {
+        return {
+          content: [{ type: "text" as const, text: `Error: ${workDir}은(는) Git 저장소가 아닙니다.` }],
+          isError: true,
+        };
+      }
+
       if (fetch !== false) {
         try {
-          execFileSync("git", ["fetch", "--all", "--quiet"], { cwd: workDir, encoding: "utf-8" });
+          await execFileAsync("git", ["fetch", "--all", "--quiet"], { cwd: workDir, encoding: "utf-8" });
         } catch {
           // fetch 실패해도 계속 진행 (오프라인 등)
         }
       }
 
-      const results = ticketIds.map((ticketId) => {
-        const foundBranches = branches.filter((branch) =>
-          gitLogContains(ticketId, branch, workDir)
-        );
-        return { id: ticketId, branches: foundBranches };
-      });
+      const results = await Promise.all(
+        ticketIds.map(async (ticketId) => {
+          const branchChecks = await Promise.all(
+            branches.map(async (branch) => ({
+              branch,
+              found: await gitLogContains(ticketId, branch, workDir),
+            }))
+          );
+          return {
+            id: ticketId,
+            branches: branchChecks.filter((b) => b.found).map((b) => b.branch),
+          };
+        })
+      );
 
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ tickets: results }, null, 2) }],

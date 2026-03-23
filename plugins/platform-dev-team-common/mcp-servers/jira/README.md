@@ -62,7 +62,7 @@ npm install
 
 ### 3. Claude Code에 MCP 서버 등록
 
-`~/.claude/settings.json`에 다음을 추가합니다:
+`~/.claude.json`에 다음을 추가합니다:
 
 ```jsonc
 {
