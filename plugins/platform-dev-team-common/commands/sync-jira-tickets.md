@@ -102,10 +102,10 @@ git log origin/production --grep="{ticketId}" --oneline
 각 티켓의 현재 Jira 상태를 조회합니다.
 
 ```bash
-acli jira workitem view {KEY} --json -f status,customfield_10659
+acli jira workitem view {KEY} --json -f status,{jira-sync 스킬의 Custom Field 테이블에 있는 모든 필드 ID}
 ```
 
-JSON 출력에서 status와 customfield_10659 값을 파싱합니다.
+JSON 출력에서 status와 커스텀 필드 값을 파싱합니다.
 
 ### 4단계: 상태 전이 규칙 적용
 
@@ -118,12 +118,7 @@ JSON 출력에서 status와 customfield_10659 값을 파싱합니다.
 | staging + 검토 완료 | SKIP |
 | production에 있고 완료 아님 | `acli jira workitem transition -k {KEY} -s "완료" -y` |
 
-커스텀 필드 업데이트 방법:
-```bash
-echo '{"fields":{"customfield_10659":{"id":"10678"}}}' > /tmp/jira-field-update.json
-acli jira workitem edit -k {KEY} --from-json /tmp/jira-field-update.json
-rm /tmp/jira-field-update.json
-```
+커스텀 필드 업데이트 방법은 jira-sync 스킬의 "커스텀 필드 업데이트" 레퍼런스와 Custom Field 테이블을 참조합니다.
 
 ### 5단계: 결과 리포트
 

@@ -33,7 +33,7 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 ### 티켓 상태 조회
 
 ```bash
-acli jira workitem view {KEY} --json -f status,customfield_10659
+acli jira workitem view {KEY} --json -f status,{커스텀 필드 테이블의 모든 필드 ID를 쉼표로 나열}
 ```
 
 ### 상태 전이
@@ -44,8 +44,15 @@ acli jira workitem transition -k {KEY} -s "{상태명}" -y
 
 ### 커스텀 필드 업데이트
 
+아래 Custom Field 테이블에서 해당하는 필드와 값을 JSON으로 구성하여 업데이트한다.
+
 ```bash
-echo '{"fields":{"customfield_10659":{"id":"10678"}}}' > /tmp/jira-field-update.json
+# 단일 필드
+echo '{"fields":{"<FIELD_ID>": <VALUE>}}' > /tmp/jira-field-update.json
+
+# 복수 필드 동시 업데이트
+echo '{"fields":{"<FIELD_ID_1>": <VALUE_1>, "<FIELD_ID_2>": <VALUE_2>}}' > /tmp/jira-field-update.json
+
 acli jira workitem edit -k {KEY} --from-json /tmp/jira-field-update.json
 rm /tmp/jira-field-update.json
 ```
@@ -96,6 +103,14 @@ git log {BRANCH} --grep="{TICKET_ID}" --oneline
 
 ## Custom Field 정보
 
-- 필드: `customfield_10659`
-- 타입: select
-- staging 병합 시 값: `{id: "10678"}`
+새로운 커스텀 필드를 추가할 때는 아래 테이블에 행을 추가하고, 상태 전이 규칙에 해당 조건/액션을 기술한다.
+
+| 필드 ID | 용도 | 타입 | 조건 | 값 |
+|---------|------|------|------|-----|
+| `customfield_10659` | Staging 배포 여부 | select | staging/production 브랜치에 포함 | `{"id": "10678"}` |
+
+### 커스텀 필드 추가 방법
+
+1. 위 테이블에 새 행을 추가한다
+2. "상태 전이 규칙" 섹션에 해당 필드의 조건과 액션을 규칙으로 추가한다
+3. "티켓 상태 조회" 명령어의 `-f` 파라미터에 새 필드 ID를 추가한다
