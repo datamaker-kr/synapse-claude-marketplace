@@ -1,11 +1,17 @@
 ---
 name: jira-sync
 description: CHANGELOG 기반 Jira 티켓 상태를 Git 브랜치 상태에 맞게 동기화하는 로직을 가이드합니다.
-allowed-tools: mcp__jira__jira_get_ticket, mcp__jira__jira_transition, mcp__jira__jira_update_field, mcp__jira__jira_list_transitions, mcp__jira__changelog_extract_tickets, mcp__jira__changelog_check_branches, Read, Bash
+allowed-tools: Bash, Read
 user-invocable: false
 ---
 
 # Jira Sync Skill
+
+## 사전 조건
+
+- Atlassian CLI (`acli`)가 설치되어 있어야 합니다
+- `acli jira auth login --web`으로 인증이 완료된 상태여야 합니다
+- 확인: `acli jira auth status`
 
 ## 목적
 
@@ -22,17 +28,55 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 | 검토 완료 | QA 담당자가 확인 완료 |
 | 완료 | Production 브랜치에 병합 |
 
+## acli 명령어 레퍼런스
+
+### 티켓 상태 조회
+
+```bash
+acli jira workitem view {KEY} --json -f status,customfield_10659
+```
+
+### 상태 전이
+
+```bash
+acli jira workitem transition -k {KEY} -s "{상태명}" -y
+```
+
+### 커스텀 필드 업데이트
+
+```bash
+echo '{"fields":{"customfield_10659":{"id":"10678"}}}' > /tmp/jira-field-update.json
+acli jira workitem edit -k {KEY} --from-json /tmp/jira-field-update.json
+rm /tmp/jira-field-update.json
+```
+
+### CHANGELOG에서 티켓 추출
+
+```bash
+# Unreleased 섹션
+sed -n '/## \[Unreleased\]/,/^## \[/p' {CHANGELOG_PATH} | grep -oE '[A-Z]+-[0-9]+' | sort -u
+
+# 특정 버전 섹션
+sed -n '/## .*{VERSION}/,/^## /p' {CHANGELOG_PATH} | grep -oE '[A-Z]+-[0-9]+' | sort -u
+```
+
+### 브랜치에 티켓 포함 여부 확인
+
+```bash
+git log {BRANCH} --grep="{TICKET_ID}" --oneline
+```
+
 ## 상태 전이 규칙
 
 ### 규칙 1: main 또는 staging 병합 → 리뷰 완료
 
 - **조건**: 티켓이 main 또는 staging 브랜치에 포함되어 있고, 현재 상태가 리뷰 완료 미만 (대기, 진행 중, 리뷰 중)
-- **액션**: `jira_transition` → "리뷰 완료"
+- **액션**: `acli jira workitem transition -k {KEY} -s "리뷰 완료" -y`
 
 ### 규칙 2: staging 배포 여부 → customfield 변경
 
-- **조건**: 티켓이 staging 또는 production 브랜치에 포함됨 (main → staging → production 순서이므로 production은 staging을 거친 것)
-- **액션**: `jira_update_field(customfield_10659, {id: "10678"})` (이미 설정되어 있으면 SKIP)
+- **조건**: 티켓이 staging 또는 production 브랜치에 포함됨
+- **액션**: 커스텀 필드 업데이트 (이미 설정되어 있으면 SKIP)
 
 ### 규칙 3: staging + 검토 완료 → SKIP
 
@@ -42,7 +86,7 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 ### 규칙 4: production 병합 → 완료
 
 - **조건**: 티켓이 production 브랜치에 포함되고 현재 상태가 "완료"가 아님
-- **액션**: `jira_transition` → "완료"
+- **액션**: `acli jira workitem transition -k {KEY} -s "완료" -y`
 
 ## 상태 순서 (전이 판단용)
 
