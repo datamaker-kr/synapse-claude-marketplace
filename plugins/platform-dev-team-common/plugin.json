@@ -14,7 +14,6 @@
     "./commands/update-pr-desc.md",
     "./commands/update-docs.md",
     "./commands/add-changelog.md",
-    "./commands/sync-jira-tickets.md"
   ],
   "skills": [
     "./skills/changelog-manager/SKILL.md",
@@ -23,7 +22,7 @@
     "./skills/docs-bootstrapper/SKILL.md",
     "./skills/mermaid-expert/SKILL.md",
     "./skills/tdd-workflow/SKILL.md",
-    "./skills/jira-sync/SKILL.md"
+    "./skills/sync-jira-tickets/SKILL.md"
   ],
   "agents": [
     "./agents/docs-manager/SKILL.md",
