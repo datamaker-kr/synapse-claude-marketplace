@@ -480,8 +480,8 @@ platform-dev-team-claude-plugin/
 │   ├── update-pr-desc.md
 │   ├── update-docs.md
 │   └── sync-jira-tickets.md   # Jira 동기화 커맨드
-└── docs/                      # 문서
-    └── acli-setup.md          # Atlassian CLI 설정 가이드
+└── mcp-servers/               # MCP 서버
+    └── jira/                  # Jira MCP 서버 (11개 도구)
 ```
 
 ---
@@ -752,7 +752,7 @@ CHANGELOG.md의 Jira 티켓들을 Git 브랜치 상태에 맞게 동기화합니
 - staging 배포 시 커스텀 필드 자동 변경
 - dry-run 모드로 안전하게 미리보기
 
-**사전 요구사항**: Atlassian CLI (`acli`) 설치 및 인증 필요 (아래 "Atlassian CLI 설정" 섹션 참조)
+**사전 요구사항**: Jira MCP 서버 설정 필요 (아래 "Jira MCP 서버" 섹션 참조)
 
 ### /add-changelog
 
@@ -834,30 +834,33 @@ platform-dev-team-claude-plugin/
 └── README.md                 # 이 파일
 ```
 
-### Atlassian CLI 설정
+### Jira MCP 서버
 
-Jira 연동 기능(`/sync-jira-tickets`)을 사용하려면 Atlassian CLI(`acli`)를 설치하고 인증해야 합니다.
+Jira 연동 기능(`/sync-jira-tickets`)을 사용하려면 Jira MCP 서버를 설정해야 합니다.
 
-**1. 설치**
+**1. Jira API Token 발급**
 
-```bash
-brew tap atlassian/homebrew-acli
-brew install acli
+[https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)에서 API Token을 생성합니다.
+
+**2. `~/.claude.json`에 추가**
+
+```jsonc
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": ["tsx", "<plugin-path>/mcp-servers/jira/src/index.ts"],
+      "env": {
+        "JIRA_API_TOKEN": "발급받은_토큰",
+        "JIRA_USER_EMAIL": "your@datamaker.io",
+        "JIRA_BASE_URL": "https://datamaker.atlassian.net"
+      }
+    }
+  }
+}
 ```
 
-**2. OAuth 인증**
-
-```bash
-acli jira auth login --web
-```
-
-**3. 인증 확인**
-
-```bash
-acli jira auth status
-```
-
-자세한 설정 방법은 `docs/acli-setup.md`를 참조하세요.
+**3. Claude Code 재시작**
 
 ### MCP 서버 구성
 

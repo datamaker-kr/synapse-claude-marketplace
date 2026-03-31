@@ -1,7 +1,7 @@
 {
   "name": "platform-dev-team-common",
-  "version": "1.2.0",
-  "description": "Common Claude plugin for development teams - TDD guidance, documentation management, PR management with Mermaid charts, and Jira integration via Atlassian CLI",
+  "version": "1.1.2",
+  "description": "Common Claude plugin for development teams - TDD guidance, documentation management, PR management with Mermaid charts, and Jira integration",
   "author": {
     "name": "datamaker-kr Organization"
   },
@@ -14,6 +14,7 @@
     "./commands/update-pr-desc.md",
     "./commands/update-docs.md",
     "./commands/add-changelog.md",
+    "./commands/sync-jira-tickets.md"
   ],
   "skills": [
     "./skills/changelog-manager/SKILL.md",
@@ -22,7 +23,7 @@
     "./skills/docs-bootstrapper/SKILL.md",
     "./skills/mermaid-expert/SKILL.md",
     "./skills/tdd-workflow/SKILL.md",
-    "./skills/sync-jira-tickets/SKILL.md"
+    "./skills/jira-sync/SKILL.md"
   ],
   "agents": [
     "./agents/docs-manager/SKILL.md",
