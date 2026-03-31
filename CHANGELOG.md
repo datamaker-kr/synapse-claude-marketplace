@@ -7,16 +7,6 @@
 
 ## [Unreleased] - yyyy-mm-dd
 
-### Changed
-
-- `platform-dev-team-common` 플러그인: Jira MCP 서버를 Atlassian CLI(`acli`) 기반으로 전환
-  - `jira-sync` 스킬 및 `/sync-jira-tickets` 커맨드를 `acli` 명령어로 재작성
-  - Atlassian CLI 설치/인증 가이드 추가 (`docs/acli-setup.md`)
-
-### Removed
-
-- `platform-dev-team-common` 플러그인: `mcp-servers/jira/` 디렉토리 (TypeScript MCP 서버 11개 도구)
-
 ### Added
 
 - `sdd-helper` 플러그인 추가 (v1.0.0)
@@ -24,7 +14,7 @@
   - 1개 에이전트: spec-manager
   - Spec-Driven Development 경량 워크플로우 지원
   - 한국어 README 포함
-- `platform-dev-team-common` 플러그인에 Jira 연동 기능 추가 (v1.1.0)
+- `platform-dev-team-common` 플러그인에 Jira 연동 기능 추가 (v1.3.0)
   - Jira MCP Server: TypeScript 기반 MCP 서버 (11개 도구)
     - 티켓 CRUD: `jira_get_ticket`, `jira_search_tickets`, `jira_create_ticket`, `jira_update_ticket`
     - 상태 전이: `jira_list_transitions`, `jira_transition`
@@ -59,7 +49,7 @@
 | 플러그인 | 버전 | 설명 |
 |---------|------|------|
 | synapse-plugin-helper | 1.0.0 | Synapse SDK 플러그인 개발 도구 |
-| platform-dev-team-common | 1.1.0 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
+| platform-dev-team-common | 1.3.0 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
 | speckit-helper | 1.0.0 | 명세 기반 개발(SDD) 플러그인 |
 | synapse-upload | 1.0.0 | AI 기반 Synapse 데이터 업로드 |
 | synapse-export | 1.0.0 | AI 기반 Synapse 어노테이션 내보내기 |
