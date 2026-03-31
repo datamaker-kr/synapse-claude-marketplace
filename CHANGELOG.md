@@ -49,7 +49,7 @@
 | 플러그인 | 버전 | 설명 |
 |---------|------|------|
 | synapse-plugin-helper | 1.0.0 | Synapse SDK 플러그인 개발 도구 |
-| platform-dev-team-common | 1.1.0 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
+| platform-dev-team-common | 1.3.0 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
 | speckit-helper | 1.0.0 | 명세 기반 개발(SDD) 플러그인 |
 | synapse-upload | 1.0.0 | AI 기반 Synapse 데이터 업로드 |
 | synapse-export | 1.0.0 | AI 기반 Synapse 어노테이션 내보내기 |
