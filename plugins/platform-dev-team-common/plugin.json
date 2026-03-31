@@ -13,7 +13,7 @@
     "./commands/update-pr-title.md",
     "./commands/update-pr-desc.md",
     "./commands/update-docs.md",
-    "./commands/add-changelog.md",
+    "./commands/add-changelog.md"
   ],
   "skills": [
     "./skills/changelog-manager/SKILL.md",
