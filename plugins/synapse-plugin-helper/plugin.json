@@ -20,6 +20,7 @@
     "./commands/update-config.md",
     "./commands/dry-run.md",
     "./commands/publish.md",
+    "./commands/add-changelog.md",
     "./commands/migrate-plugin-to-server.md"
   ],
   "skills": [
@@ -29,7 +30,8 @@
     "./skills/result-schemas/SKILL.md",
     "./skills/runtime-context-api/SKILL.md",
     "./skills/specialized-actions/SKILL.md",
-    "./skills/step-workflow/SKILL.md"
+    "./skills/step-workflow/SKILL.md",
+    "./skills/plugin-changelog/SKILL.md"
   ],
   "agents": [
     "./agents/plugin-validator.md",
