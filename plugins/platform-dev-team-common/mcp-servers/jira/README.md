@@ -187,8 +187,8 @@ MCP 서버가 제공하는 도구들은 `/sync-jira-tickets` 외에도 Claude와
 
 | 도구 | 설명 | 주요 파라미터 |
 |------|------|-------------|
-| `jira_get_ticket` | 티켓 상세 조회 | `ticketId`, `fields[]` |
-| `jira_search_tickets` | JQL로 티켓 검색 | `jql`, `maxResults` |
+| `jira_get_ticket` | 티켓 상세 조회 | `ticketId`, `fields[]`, `commentLimit` |
+| `jira_search_tickets` | JQL로 티켓 검색 | `jql`, `maxResults`, `fields[]` |
 | `jira_create_ticket` | 새 티켓 생성 | `projectKey`, `summary`, `issueType` |
 | `jira_update_ticket` | 티켓 필드 수정 | `ticketId`, `fields` |
 
@@ -230,6 +230,44 @@ MCP 서버가 제공하는 도구들은 `/sync-jira-tickets` 외에도 Claude와
 
 # 현재 스프린트 확인
 "보드 123의 활성 스프린트 보여줘"
+```
+
+#### `jira_get_ticket` 응답 상세
+
+기본 호출 시 핵심 필드(`summary`, `status`, `statusId`, `assignee`, `customfield_10659`, `issuetype`, `priority`)만 반환합니다. `fields` 인자에 추가 필드를 명시하면 응답에 포함됩니다.
+
+| 인자 | 타입 | 설명 |
+|------|------|------|
+| `ticketId` | `string` (필수) | 티켓 ID (예: `SYN-1234`) |
+| `fields` | `string[]` (선택) | 조회할 필드 목록. 미지정 시 기본 필드 반환 |
+| `commentLimit` | `number` (선택) | `fields`에 `comment` 포함 시 반환할 최근 댓글 개수 (기본: 10) |
+
+특수 처리 필드:
+
+- **`description`**: Jira ADF(Atlassian Document Format) JSON을 그대로 반환
+- **`comment`**: `/issue/{id}/comment?orderBy=-created&maxResults=N` 별도 엔드포인트 호출로 **최신순 정확히 N개**를 가져옴. 응답 형태는 `{ total, returned, comments: [{ id, author, created, updated, body }] }` (`body`는 ADF JSON, `commentLimit` 기본 10)
+- 기타 알려지지 않은 필드명은 Jira raw 값 그대로 패스스루
+
+> `jira_search_tickets`는 `description`은 지원하지만 `comment`는 N+1 호출 비용 때문에 미지원입니다. 검색 결과에 댓글이 필요하면 각 티켓에 대해 `jira_get_ticket`을 개별 호출하세요.
+
+호출 예시:
+
+```typescript
+// 1) 기본 — 핵심 필드만
+jira_get_ticket({ ticketId: "SYN-1234" })
+
+// 2) description 포함
+jira_get_ticket({
+  ticketId: "SYN-1234",
+  fields: ["summary", "status", "description"]
+})
+
+// 3) 최근 댓글 5개
+jira_get_ticket({
+  ticketId: "SYN-1234",
+  fields: ["summary", "comment"],
+  commentLimit: 5
+})
 ```
 
 ## 프로젝트 구조

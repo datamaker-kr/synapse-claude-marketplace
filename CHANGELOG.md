@@ -39,6 +39,19 @@
   - synapse-export, synapse-upload, speckit-helper, sdd-helper 상세 섹션 추가
 - AGENTS.md에 플러그인 문서화 필수 규칙 추가
   - README 필수, 필수 섹션, 루트 README 등록, 한글 문서, plugin.json 정합성
+- `platform-dev-team-common` Jira MCP 도구 응답 확장 및 일관화
+  - `jira_get_ticket`: `fields`에 `description`(ADF JSON), `comment` 포함 가능. `commentLimit` 인자 추가 (기본 10)
+  - 댓글은 `/issue/{id}/comment?orderBy=-created&maxResults=N` 별도 호출로 **최신순 정확히 N개** 보장 (이전 슬라이싱 방식의 정렬·페이지네이션 한계 제거)
+  - `jira_search_tickets`: 공통 필드 매퍼 도입으로 요청한 `fields`가 응답에 정확히 반영. `description` 필드 지원
+  - `jira_search_tickets` 응답에 `statusId` 추가 (status를 name+id 페어로 노출)
+  - README에 `jira_get_ticket` 응답 상세 섹션 및 `jira_search_tickets` 미지원 사항 명시
+
+### Fixed
+
+- `platform-dev-team-common` Jira MCP 타입·기능 결함 수정
+  - `jira-client.ts` 빈 응답 본문(204 No Content) 처리 시 TypeScript `T` 타입 할당 오류 해소
+  - `jira_search_tickets`가 `fields` 인자를 무시하고 고정 4개 키만 반환하던 동작 수정 — 이제 요청 필드가 응답에 반영됨
+  - `jira_search_tickets`에서 `comment` 요청 시 N+1 호출 비용을 명확히 거절하고 `jira_get_ticket` 개별 호출로 안내
 
 ### Removed
 
