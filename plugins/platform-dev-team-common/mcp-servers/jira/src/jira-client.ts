@@ -25,7 +25,7 @@ function authHeader(config: JiraConfig): string {
 export async function jiraFetch<T = any>(
   path: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<T | null> {
   const config = getConfig();
   const url = `${config.baseUrl}/rest/api/3${path}`;
   const res = await fetch(url, {
@@ -43,13 +43,13 @@ export async function jiraFetch<T = any>(
     throw new Error(`Jira API ${res.status}: ${truncated}`);
   }
   const text = await res.text();
-  return (text ? JSON.parse(text) : null) as T;
+  return text ? JSON.parse(text) : null;
 }
 
 export async function jiraAgileFetch<T = any>(
   path: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<T | null> {
   const config = getConfig();
   const url = `${config.baseUrl}/rest/agile/1.0${path}`;
   const res = await fetch(url, {
@@ -67,5 +67,28 @@ export async function jiraAgileFetch<T = any>(
     throw new Error(`Jira Agile API ${res.status}: ${truncated}`);
   }
   const text = await res.text();
-  return (text ? JSON.parse(text) : null) as T;
+  return text ? JSON.parse(text) : null;
+}
+
+// JSON 응답이 보장되어야 하는 호출(GET, 생성 POST 등)에 사용. 빈 본문이면 에러.
+export async function jiraFetchJson<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const data = await jiraFetch<T>(path, options);
+  if (data === null) {
+    throw new Error(`Jira API returned empty body for ${path}`);
+  }
+  return data;
+}
+
+export async function jiraAgileFetchJson<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const data = await jiraAgileFetch<T>(path, options);
+  if (data === null) {
+    throw new Error(`Jira Agile API returned empty body for ${path}`);
+  }
+  return data;
 }

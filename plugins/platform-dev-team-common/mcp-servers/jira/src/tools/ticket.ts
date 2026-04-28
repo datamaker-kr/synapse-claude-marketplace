@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { jiraFetch } from "../jira-client.js";
+import { jiraFetch, jiraFetchJson } from "../jira-client.js";
 
 const GET_DEFAULT_FIELDS = [
   "summary",
@@ -43,8 +43,13 @@ function mapTicketFields(
       case "comment":
         // comment는 호출자에서 별도 엔드포인트로 처리
         break;
-      default:
-        result[f] = raw[f];
+      default: {
+        // 알려지지 않은 필드는 raw 값 그대로 패스스루. undefined는 응답 노이즈 방지를 위해 제외.
+        const value = raw[f];
+        if (value !== undefined) {
+          result[f] = value;
+        }
+      }
     }
   }
   return result;
@@ -63,8 +68,8 @@ export function registerTicketTools(server: McpServer) {
         fields: z.array(z.string()).optional().describe(
           "조회할 필드 목록. 미지정 시 기본 필드 반환. 'description'(ADF), 'comment'(최근 N개) 추가 가능"
         ),
-        commentLimit: z.number().int().positive().optional().describe(
-          "fields에 'comment' 포함 시 반환할 최근 댓글 개수 (기본: 10)"
+        commentLimit: z.number().int().positive().max(100).optional().describe(
+          "fields에 'comment' 포함 시 반환할 최근 댓글 개수 (기본: 10, 최대: 100)"
         ),
       }),
     },
@@ -76,7 +81,10 @@ export function registerTicketTools(server: McpServer) {
       // 메인 issue 조회 — comment는 제외
       const mainFields = requested.filter((f) => f !== "comment");
       const fetchFields = mainFields.length > 0 ? mainFields : ["summary"];
-      const data = await jiraFetch(`/issue/${ticketId}?fields=${fetchFields.join(",")}`);
+      const issueParams = new URLSearchParams({ fields: fetchFields.join(",") });
+      const data = await jiraFetchJson<{ key: string; fields: any }>(
+        `/issue/${ticketId}?${issueParams}`
+      );
 
       const result: Record<string, unknown> = {
         key: data.key,
@@ -85,12 +93,16 @@ export function registerTicketTools(server: McpServer) {
 
       // 댓글은 정확한 정렬과 limit을 위해 별도 엔드포인트 호출
       if (wantsComment) {
-        const commentData = await jiraFetch(
-          `/issue/${ticketId}/comment?orderBy=-created&maxResults=${limit}`
+        const commentParams = new URLSearchParams({
+          orderBy: "-created",
+          maxResults: String(limit),
+        });
+        const commentData = await jiraFetchJson<{ comments: any[]; total?: number }>(
+          `/issue/${ticketId}/comment?${commentParams}`
         );
-        const comments = commentData?.comments ?? [];
+        const comments = commentData.comments ?? [];
         result.comment = {
-          total: commentData?.total ?? comments.length,
+          total: commentData.total ?? comments.length,
           returned: comments.length,
           comments: comments.map((c: any) => ({
             id: c.id,
@@ -147,7 +159,9 @@ export function registerTicketTools(server: McpServer) {
       if (nextPageToken) {
         params.set("nextPageToken", nextPageToken);
       }
-      const data = await jiraFetch(`/search/jql?${params}`);
+      const data = await jiraFetchJson<{ issues: any[]; isLast?: boolean; nextPageToken?: string }>(
+        `/search/jql?${params}`
+      );
       const issues = data.issues.map((issue: any) => ({
         key: issue.key,
         ...mapTicketFields(issue.fields, requested),
@@ -194,7 +208,7 @@ export function registerTicketTools(server: McpServer) {
       if (assignee) {
         fields.assignee = { accountId: assignee };
       }
-      const data = await jiraFetch("/issue", {
+      const data = await jiraFetchJson<{ key: string; id: string; self: string }>("/issue", {
         method: "POST",
         body: JSON.stringify({ fields }),
       });
