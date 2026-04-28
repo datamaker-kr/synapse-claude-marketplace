@@ -43,7 +43,7 @@ export async function jiraFetch<T = any>(
     throw new Error(`Jira API ${res.status}: ${truncated}`);
   }
   const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  return (text ? JSON.parse(text) : null) as T;
 }
 
 export async function jiraAgileFetch<T = any>(
@@ -67,5 +67,5 @@ export async function jiraAgileFetch<T = any>(
     throw new Error(`Jira Agile API ${res.status}: ${truncated}`);
   }
   const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  return (text ? JSON.parse(text) : null) as T;
 }
