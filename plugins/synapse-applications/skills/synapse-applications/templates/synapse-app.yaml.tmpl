@@ -19,6 +19,15 @@ metadata:
 runtime:
   kind: image                          # canonical: registry-pulled OCI image
   image: registry.local.datamaker.io/synapse_apps/<slug>:0.1.0  # must match the tag you push
+  # No `env:` key - the manifest schema does not allow arbitrary env injection.
+  # Secrets and host-side caches go through `volumes` (see SKILL.md "Secrets and runtime config").
+  # volumes:                           # optional bind mounts; runner translates to `docker run -v`
+  #   - host: /home/juho/.config/<slug>     # absolute host path
+  #     container: /etc/<slug>              # absolute path inside the container
+  #     readonly: true                      # default true
+  #   - host: /home/juho/.local/share/<slug>
+  #     container: /data
+  #     readonly: false                     # writable persistent data dir
 
 network:
   ports:

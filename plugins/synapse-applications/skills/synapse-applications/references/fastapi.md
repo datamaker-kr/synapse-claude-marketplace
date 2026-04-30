@@ -26,6 +26,17 @@ EXPOSE 8020
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8020", "--reload"]
 ```
 
+If your app processes Korean (or any CJK) documents - PDFs, scans, OCR pipelines - add poppler's CJK map plus a CJK font before `pip install`, otherwise `pdf2image` renders blank pages and `pdftotext` fails with `Missing language pack for 'Adobe-Korea1' mapping`:
+
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        poppler-utils poppler-data \
+        fonts-noto-cjk fontconfig \
+        libtiff-tools libmagic1 ca-certificates \
+    && fc-cache -f \
+    && rm -rf /var/lib/apt/lists/*
+```
+
 ## requirements.txt
 
 ```
@@ -73,3 +84,6 @@ Standard HTML. Paste `templates/bridge-snippet.html` into `<head>`, replace `APP
 - `--reload` watches Python only; static file edits are served live without a reload.
 - Same-origin fetch from iframe JS needs no CORS. Cross-origin adds `fastapi.middleware.cors.CORSMiddleware`.
 - Keep `/health` side-effect free (no DB, no middleware that touches one).
+- **`status_code=204` on a route + a return type other than bare `Response` crashes at app construction time** with `AssertionError: Status code 204 must not have a response body`. Drop `status_code=204` from the decorator and `return Response(status_code=204)` from the body instead.
+- **Set `root_path` from the proxy env so OpenAPI/docs generate correct URLs:** `app = FastAPI(root_path=os.environ.get("SYNAPSE_APP_ROOT_PATH", ""))`. Routes still match relative paths; this only affects URL generation in `/docs` and `/openapi.json`.
+- **Loading secrets from a bind-mounted dir (canonical)** - see "Secrets and runtime config" in `SKILL.md`. Read `*.env` from `/etc/<slug>` at startup; never bake API keys into the image.

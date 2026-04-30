@@ -70,6 +70,7 @@ Full contract: `docs/apps/manifest.md`, `schemas/synapse-app.schema.json`.
 - `network.ports.public`: the container port. The runner does NOT publish a host port - apps are reached only via the platform's reverse proxy (`/api/plugins/apps/<slug>/proxy/`). platform-api connects to `synapse-app-<slug>:<port>` over the docker network.
 - `network.public_url`: still required by the schema (`^https?://.+/$`), but the platform overrides it server-side and returns `/api/plugins/apps/<slug>/proxy/` to the workspace UI. Treat this field as informational - put `http://localhost:<port>/` so static validation passes.
 - `network.health.path`: required, starts with `/`. The host probes `http://synapse-app-<slug>:<port><path>` from inside the platform-api container.
+- `runtime.volumes`: optional bind mounts. Array of `{host, container, readonly?}`. Translated by the runner into `-v host:container[:ro]`. `readonly` defaults to `true`. Use for large host-side caches (datasets, model weights) that should not be baked into the image. Single-tenant LAN contract; no allowlist - do not install untrusted images.
 - `iframe.sandbox`: minimum `allow-scripts allow-same-origin`.
 - `capabilities.auth/theme/locale`: default `none`; opt in explicitly. `auth: required` is not fully wired yet (`docs/apps/auth.md`).
 - `capabilities.scopes`: GraphQL capability gateway scopes (`<ns>:<verb>`, ns in `projects|datasets|jobs|models|files|users`, verb in `read|write|self`). Omit or `[]` for apps that do not use the gateway. See `docs/apps/capabilities.md` + `backend/GRAPHQL.md`. **Gateway is very early; expect scope catalog and manifest shape to shift. Re-check docs before declaring scopes.**
@@ -177,6 +178,44 @@ If a ported source has `Header.tsx` + `Footer.tsx` with logo / nav / footer, del
 - **Package manager**: pnpm. For Nuxt / shadcn stacks ship an `.npmrc` with `shamefully-hoist=true` + `auto-install-peers=true`.
 - **Production target**: linux/amd64. macOS Docker Desktop (VirtioFS) is dev-only; do not design around Mac-specific bind-mount behavior.
 
+## Secrets and runtime config
+
+The manifest schema does **not** allow `runtime.env`. The runner only injects the proxy/root-path vars listed above and never forwards arbitrary env keys from the manifest. So how do you get `OPENAI_API_KEY`, DB credentials, signing keys, etc. into a published image?
+
+**Pattern: bind-mount a host-side secrets directory.** Declare it under `runtime.volumes` with `readonly: true`, then read it at startup. Convention:
+
+```yaml
+runtime:
+  kind: image
+  image: registry.local.datamaker.io/synapse_apps/<slug>:0.1.0
+  volumes:
+    - host: /home/juho/.config/<slug>
+      container: /etc/<slug>
+      readonly: true
+    - host: /home/juho/.local/share/<slug>   # optional: writable persistent data dir
+      container: /data
+      readonly: false
+```
+
+Drop `*.env` files into `/home/juho/.config/<slug>/` on the docker host. The app loads them on startup, e.g. (Python):
+
+```python
+from pathlib import Path
+from dotenv import dotenv_values
+
+secrets_dir = Path("/etc/<slug>")
+env = {}
+for p in sorted(secrets_dir.glob("*.env")) if secrets_dir.is_dir() else []:
+    env.update({k: v for k, v in dotenv_values(p).items() if v is not None})
+OPENAI_API_KEY = env.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+```
+
+`chmod 600` the file on the host so other users on the box can't read it. The bind mount is read-only inside the container.
+
+**Non-secret config** (model names, base URLs, feature flags) goes in the Dockerfile via `ENV` or in code defaults. There is no manifest mechanism for it today.
+
+**Single-tenant LAN contract.** Any installed image gains the declared host paths. Do not install untrusted images, and do not bind paths broader than the app needs.
+
 ## Per-framework CMD
 
 | Framework        | Command                                                        |
@@ -223,6 +262,9 @@ The workspace claims 3000 / 4000 / 8000 / 8200 on the host. Apps don't get a hos
 - **Hydration mismatch** - reading `window`/`document`/cookies inside `useState` initializers. Initialize to a deterministic default, sync in `useEffect`.
 - **Sidebar sticky offset inherited from host shell** - a ported sidebar's `top-16 h-[calc(100vh-4rem)]` was calibrated for a host header. The iframe has none; use `top-0 h-screen`.
 - **Clipboard API silently blocked** - `navigator.clipboard.writeText` throws `NotAllowedError` unless the iframe has `allow="clipboard-read; clipboard-write"`. The shared `SubAppFrame` sets sensible defaults; manifest `iframe.allow` is advisory until the host reads it.
+- **Putting secrets in the manifest** - the schema rejects `runtime.env`; the runner does not forward arbitrary env keys. Use the bind-mounted secrets pattern in "Secrets and runtime config" above. Do not bake API keys into the image.
+- **Korean (CJK) PDFs render as blank pages** - `python:*-slim` base images ship neither CJK fonts nor poppler's CJK character map, so `pdf2image` / `pdftoppm` produces empty rasters and `pdftotext` errors with `Missing language pack for 'Adobe-Korea1' mapping`. Add `apt-get install poppler-data fonts-noto-cjk fontconfig && fc-cache -f` to the Dockerfile. Same trap exists for Japanese (`Adobe-Japan1`) and Chinese (`Adobe-GB1`/`Adobe-CNS1`).
+- **FastAPI `status_code=204` + `response_model`** - FastAPI asserts no body on 204 and crashes at import: `AssertionError: Status code 204 must not have a response body`. Don't set `status_code=204` on the decorator and don't return a Pydantic model; instead return `Response(status_code=204)` from the body.
 
 ## Recipes
 
