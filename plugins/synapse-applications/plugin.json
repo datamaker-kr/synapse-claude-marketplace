@@ -1,6 +1,6 @@
 {
   "name": "synapse-applications",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Build and publish Synapse Apps as OCI images so the Synapse Workspace can install them via the App Store. Covers React, Vue, Next.js, Nuxt 3, Gradio, Streamlit, Static HTML, Django, FastAPI.",
   "author": {
     "name": "Datamaker",

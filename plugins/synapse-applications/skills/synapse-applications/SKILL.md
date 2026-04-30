@@ -66,11 +66,10 @@ Full contract: `docs/apps/manifest.md`, `schemas/synapse-app.schema.json`.
 - `apiVersion: synapse.datamaker.io/v1` (frozen).
 - `kind: SynapseApp`.
 - `metadata.name`: slug; appears as the install identity. `metadata.version`: SemVer.
-- **`runtime.kind: image`** (canonical). `runtime.image: registry.local.datamaker.io/synapse_apps/<slug>:<version>`.
-- The legacy `runtime.kind: docker-compose` is still in the schema for now but the host no longer surfaces compose-mode apps. Do not use it.
-- `network.ports.public`: the container port. The runner maps this 1:1 to the host (`-p <port>:<port>`).
-- `network.public_url`: full URL with scheme AND trailing slash (`http://localhost:<port>/`). Schema: `^https?://.+/$`. Browser-facing - the iframe `src`.
-- `network.health.path`: required, starts with `/`. The host probes `http://synapse-app-<slug>:<port><path>` from inside the platform-api container; localhost in `public_url` is irrelevant for probes.
+- **`runtime.kind: image`** (the only supported value). `runtime.image: registry.local.datamaker.io/synapse_apps/<slug>:<version>`.
+- `network.ports.public`: the container port. The runner does NOT publish a host port - apps are reached only via the platform's reverse proxy (`/api/plugins/apps/<slug>/proxy/`). platform-api connects to `synapse-app-<slug>:<port>` over the docker network.
+- `network.public_url`: still required by the schema (`^https?://.+/$`), but the platform overrides it server-side and returns `/api/plugins/apps/<slug>/proxy/` to the workspace UI. Treat this field as informational - put `http://localhost:<port>/` so static validation passes.
+- `network.health.path`: required, starts with `/`. The host probes `http://synapse-app-<slug>:<port><path>` from inside the platform-api container.
 - `iframe.sandbox`: minimum `allow-scripts allow-same-origin`.
 - `capabilities.auth/theme/locale`: default `none`; opt in explicitly. `auth: required` is not fully wired yet (`docs/apps/auth.md`).
 - `capabilities.scopes`: GraphQL capability gateway scopes (`<ns>:<verb>`, ns in `projects|datasets|jobs|models|files|users`, verb in `read|write|self`). Omit or `[]` for apps that do not use the gateway. See `docs/apps/capabilities.md` + `backend/GRAPHQL.md`. **Gateway is very early; expect scope catalog and manifest shape to shift. Re-check docs before declaring scopes.**
@@ -83,6 +82,45 @@ Full contract: `docs/apps/manifest.md`, `schemas/synapse-app.schema.json`.
 - **Plain YAML/JSON.** Accepted as a fallback for one-line manifests.
 
 `templates/publish.sh` always uses base64. Multi-line LABELs in a Dockerfile are fragile; bake the b64 string at build time via `--label`.
+
+## Reverse proxy contract
+
+Apps run behind a reverse proxy at `/api/plugins/apps/<slug>/proxy/` on the workspace origin (no host port published). This is the only browser-facing path. Two consequences:
+
+1. **Sub-path mounting.** Apps are served at the prefix above. The proxy strips that prefix on the way upstream, so your code sees clean paths (`/`, `/health`, `/api/foo`). The original prefix is forwarded as `X-Forwarded-Prefix` and exported as env vars (see below) for apps that need to construct prefixed URLs themselves.
+
+2. **Body rewriting.** The proxy rewrites HTML and JS responses in-memory:
+   - HTML attribute values starting with `/` (`src`, `href`, `action`, `formaction`, `srcset`, `poster`, `data`) get the prefix prepended.
+   - JS `import "/x"` / `from "/x"` / `import("/x")` specifiers get the prefix prepended (in both `.js` responses and inline `<script>` blocks within HTML).
+   - **Not rewritten:** `fetch("/x")`, `new URL("/x")`, runtime-constructed paths in JS, JSON response bodies, image manifests. Apps must read the env vars below for those.
+
+### Env exports per container
+
+The runner sets these on every app container at start time:
+
+| Var | Value | Used by |
+|-----|-------|---------|
+| `SYNAPSE_APP_ROOT_PATH` | `/api/plugins/apps/<slug>/proxy` | canonical, framework-agnostic |
+| `SYNAPSE_APP_PORT` | manifest's `network.ports.public` | server bind hint |
+| `GRADIO_ROOT_PATH` | same as `SYNAPSE_APP_ROOT_PATH` | Gradio honors this natively |
+| `BASE_PATH` | same | generic |
+| `BASE_URL` | same with trailing slash | generic |
+| `PUBLIC_URL` | same | generic (CRA, some build tools) |
+
+### Framework-specific wiring
+
+- **Gradio**: `GRADIO_ROOT_PATH` is honored automatically by `gr.Blocks().launch()` and by `mount_gradio_app(...)`. No code change needed in most cases.
+- **FastAPI**: `app = FastAPI(root_path=os.environ.get("SYNAPSE_APP_ROOT_PATH", ""))`.
+- **Vite**: `vite.config.ts` -> `defineConfig(() => ({ base: process.env.SYNAPSE_APP_ROOT_PATH ? process.env.SYNAPSE_APP_ROOT_PATH + '/' : '/', server: { hmr: { path: process.env.SYNAPSE_APP_ROOT_PATH + '/__hmr', clientPort: 3000 } } }))`. The `server.hmr` block is required for HMR to work behind the proxy; without it the app still renders, but Vite's WebSocket connection fails (visible as `[vite] failed to connect to websocket` in the browser console).
+- **Next.js**: `basePath` in `next.config.js` is build-time only. Either bake it (`NEXT_PUBLIC_BASE_PATH=...` at build, then `basePath: process.env.NEXT_PUBLIC_BASE_PATH`) and tag the image per workspace, or rely on the proxy's HTML rewriter for static asset URLs.
+- **Nuxt 3**: `app.baseURL` in `nuxt.config.ts`, set from env in the config.
+- **Streamlit**: `--server.baseUrlPath="$SYNAPSE_APP_ROOT_PATH"` flag.
+- **Django**: `FORCE_SCRIPT_NAME = os.environ.get("SYNAPSE_APP_ROOT_PATH", "")` in settings, plus `STATIC_URL` / `MEDIA_URL` adjusted accordingly.
+- **Static HTML / nginx**: ensure all asset URLs are relative (no leading `/`) or set a `<base href="...">` reading the env at template render time.
+
+### Known limitation
+
+**Vite HMR WebSocket** doesn't auto-discover the proxy path. The Vite client computes its WS URL from its own `server.hmr.*` config and ignores the proxy entirely. App fix: set `server.hmr.path` + `clientPort` as above. Alternative: ignore HMR (the published image is dev-server-mode but you don't iterate inside the workspace - you republish the image).
 
 ## Health endpoint
 
@@ -160,21 +198,26 @@ Always bind `0.0.0.0`. `127.0.0.1` is unreachable from outside the container. Pu
 |------|-------|
 | 3000 | host frontend |
 | 4000 | App Store (`appstore`) |
-| 8000 | host backend (FastAPI) |
+| 8000 | platform-api (FastAPI) |
+| 8200 | local Synapse Django (via `synapse-nginx`) |
 
-The workspace itself takes 3000 / 4000 / 8000. Pick anything else for your app's `network.ports.public` - the host port-maps it 1:1 inside the `synapse-experimental_default` network.
+The workspace claims 3000 / 4000 / 8000 / 8200 on the host. Apps don't get a host port at all - they only listen inside the `synapse-experimental_default` docker network and are reached via the platform reverse proxy. Pick anything for `network.ports.public`; collisions only matter inside the container's own port namespace, not host-side. Common defaults: `7860` (Gradio), `8501` (Streamlit), `5173` (Vite), `3000` (Next/Nuxt), `8080` (FastAPI/Django).
 
 ## Common pitfalls
 
-- Missing trailing slash on `public_url` (schema: `^https?://.+/$`).
-- `runtime.kind: docker-compose` instead of `image`. The host no longer surfaces compose-mode apps.
+- Missing trailing slash on `public_url` (schema: `^https?://.+/$`). Note: the value is informational; the platform overrides it server-side with the proxy URL.
+- `runtime.kind: docker-compose` instead of `image`. Only `image` is supported.
 - Server bound to `127.0.0.1` instead of `0.0.0.0` inside the container.
 - Missing `/health` - app reports unhealthy forever.
-- Hardcoded `localhost` in server-side calls - use the workspace's `synapse-experimental_default` Docker DNS for cross-app traffic, or the host port from the dev's machine.
+- Hardcoded `localhost` in server-side calls - use the workspace's `synapse-experimental_default` Docker DNS for cross-app traffic.
 - Iframe sandbox without `allow-same-origin` breaks `localStorage` and same-origin fetch.
 - Forgetting the `io.synapse.app.manifest` label at build time. Without it the App Store's catalog scan skips the image entirely.
-- Tagging the image differently from `runtime.image` in the manifest. The platform uses the image ref it pulled (the install path), but mismatch is a footgun for downstream tooling.
 - Missing pull credentials on the platform-api side: `REGISTRY_USERNAME`/`REGISTRY_PASSWORD` are loaded from `backend/.env` at host startup.
+- **Not reading `SYNAPSE_APP_ROOT_PATH` at runtime** - the proxy's HTML/JS rewriter handles static absolute paths in markup, but anything constructed at runtime (`fetch`, `new URL`, JSON manifests, image src built in JS) silently 404s on the workspace origin. Wire the env into your framework as listed in "Reverse proxy contract" above.
+- **Vite host check rejection** - dev servers with `server.allowedHosts` allow-lists may reject the proxy's upstream Host. The proxy already rewrites Host to `localhost` on forward, which Vite accepts by default. If you've narrowed `allowedHosts`, add `localhost` back.
+- **Vite HMR WebSocket failing** - `[vite] failed to connect to websocket` in the browser console. Configure `server.hmr.path` + `clientPort: 3000` in `vite.config.ts`. The app still renders if you skip this; only HMR is broken.
+- **`<base href>` injection assumption** - the proxy does NOT inject a `<base>` element. It rewrites attribute values directly, so apps that rely on a `<base>`-anchored relative URL strategy work; apps that build URLs from `document.baseURI` see the workspace origin (no prefix).
+- **Tagging the image differently from `runtime.image`** in the manifest. The platform uses the image ref it pulled (the install path), but mismatch is a footgun for downstream tooling.
 - **Redundant chrome** - shipping a top header, logo, or footer inside the iframe.
 - **Half-theme trap when porting light-only apps** - if the ported app has zero `dark:` Tailwind variants, toggling `html.dark` via the bridge produces dark Synapse-chrome over light upstream content. Either add `dark:` variants or make `applyTheme` a no-op.
 - **Hydration mismatch** - reading `window`/`document`/cookies inside `useState` initializers. Initialize to a deterministic default, sync in `useEffect`.
