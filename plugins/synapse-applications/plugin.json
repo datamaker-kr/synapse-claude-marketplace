@@ -1,0 +1,16 @@
+{
+  "name": "synapse-applications",
+  "version": "0.2.0",
+  "description": "Build and publish Synapse Apps as OCI images so the Synapse Workspace can install them via the App Store. Covers React, Vue, Next.js, Nuxt 3, Gradio, Streamlit, Static HTML, Django, FastAPI.",
+  "author": {
+    "name": "Datamaker",
+    "email": "dev@datamaker.kr"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "MIT",
+  "keywords": ["synapse", "synapse-app", "synapse-workspace", "iframe", "registry", "oci"],
+  "skills": [
+    "./skills/synapse-applications/SKILL.md"
+  ]
+}

@@ -99,6 +99,21 @@
       "keywords": ["sdd", "spec-driven-development", "requirements", "specification", "planning"],
       "category": "development",
       "tags": ["sdd", "requirements", "specification", "planning", "workflow"]
+    },
+    {
+      "name": "synapse-applications",
+      "source": "./plugins/synapse-applications",
+      "description": "Build and publish Synapse Apps as OCI images so the Synapse Workspace can install them via the App Store. Supports React, Vue, Next.js, Nuxt 3, Gradio, Streamlit, Static HTML, Django, FastAPI.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Datamaker"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "MIT",
+      "keywords": ["synapse", "synapse-app", "synapse-workspace", "iframe", "registry", "oci"],
+      "category": "development",
+      "tags": ["synapse", "synapse-app", "iframe", "oci", "app-store"]
     }
   ]
 }

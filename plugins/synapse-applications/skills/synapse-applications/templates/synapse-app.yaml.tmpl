@@ -1,0 +1,65 @@
+# Synapse App manifest - apiVersion synapse.datamaker.io/v1
+# Place at <slug>/synapse-app.yaml. Contract: docs/apps/manifest.md, schemas/synapse-app.schema.json.
+# At build time `templates/publish.sh` base64-encodes this file into the
+# image label `io.synapse.app.manifest`. The platform reads it back on
+# `docker image inspect`, so this file IS the install manifest.
+
+apiVersion: synapse.datamaker.io/v1
+kind: SynapseApp
+
+metadata:
+  name: <slug>                         # lowercase, ^[a-z][a-z0-9-]{1,62}$
+  label: <Human Label>                 # shown in App Store + workspace
+  description: >
+    <One or two sentences.>
+  owner: <team-or-email@datamaker.io>  # optional
+  version: 0.1.0                       # SemVer for the APP; matches the image tag you push
+  tags: [<tag1>, <tag2>]
+
+runtime:
+  kind: image                          # canonical: registry-pulled OCI image
+  image: registry.local.datamaker.io/synapse_apps/<slug>:0.1.0  # must match the tag you push
+
+network:
+  ports:
+    public: <PORT>                     # container port; the host maps it 1:1 (-p PORT:PORT)
+  public_url: http://localhost:<PORT>/ # browser-facing URL + trailing slash (^https?://.+/$)
+  health:
+    path: /health                      # platform probes http://synapse-app-<slug>:<PORT><path>
+    method: GET
+    expect_status: 200
+    timeout_ms: 2500
+    interval_ms: 10000
+
+iframe:
+  sandbox:                             # minimum: allow-scripts + allow-same-origin
+    - allow-scripts
+    - allow-same-origin
+    - allow-forms
+    - allow-popups
+  allow:
+    - clipboard-read
+    - clipboard-write
+  referrer_policy: no-referrer
+
+capabilities:
+  auth: none                           # none | optional | required
+  theme: none                          # none | subscribe
+  locale: none                         # none | subscribe
+  events:
+    publish: []
+    subscribe: []
+  scopes: []                           # GraphQL capability gateway scopes.
+                                        # Domain: ^(projects|datasets|jobs|models|files|users):(read|write|self)$.
+                                        # Federation (data:*): see docs/data/scopes.md.
+                                        # Uncomment only what you use.
+                                        # - data:connections:read
+                                        # - data:datasets:read
+                                        # - data:preview
+                                        # - data:query
+                                        # - data:admin:registry         # data-catalog only
+                                        # - data:query:write            # LOCKED until Phase 4+
+
+lifecycle:
+  start_timeout_ms: 60000
+  stop_grace_ms: 10000
