@@ -216,6 +216,21 @@ OPENAI_API_KEY = env.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY") o
 
 **Single-tenant LAN contract.** Any installed image gains the declared host paths. Do not install untrusted images, and do not bind paths broader than the app needs.
 
+## Calling host services (Ollama, LM Studio, local DBs)
+
+App containers attach to the `synapse-experimental_default` docker network, which means:
+- **Other compose services** (`synapse-nginx`, `platform-api`, etc.) reach by service name (`http://synapse-nginx:80`, `http://platform-api:8000`).
+- **Other installed apps** reach by container name (`http://synapse-app-<slug>:<port>`).
+- **The docker host itself** is reachable as `host.docker.internal` (the runner injects `--add-host=host.docker.internal:host-gateway` for every installed app, so this works on Linux too — not just macOS / Windows Docker Desktop).
+
+Use cases that justify host-internal: a local LLM runtime like Ollama at `:11434`, LM Studio at `:1234`, a host-side Postgres / DuckDB on a non-published port. Drop the URL into the secrets `.env`:
+
+```
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+```
+
+Never publish a host port for cross-app traffic — go through the compose network instead.
+
 ## Per-framework CMD
 
 | Framework        | Command                                                        |
@@ -265,6 +280,12 @@ The workspace claims 3000 / 4000 / 8000 / 8200 on the host. Apps don't get a hos
 - **Putting secrets in the manifest** - the schema rejects `runtime.env`; the runner does not forward arbitrary env keys. Use the bind-mounted secrets pattern in "Secrets and runtime config" above. Do not bake API keys into the image.
 - **Korean (CJK) PDFs render as blank pages** - `python:*-slim` base images ship neither CJK fonts nor poppler's CJK character map, so `pdf2image` / `pdftoppm` produces empty rasters and `pdftotext` errors with `Missing language pack for 'Adobe-Korea1' mapping`. Add `apt-get install poppler-data fonts-noto-cjk fontconfig && fc-cache -f` to the Dockerfile. Same trap exists for Japanese (`Adobe-Japan1`) and Chinese (`Adobe-GB1`/`Adobe-CNS1`).
 - **FastAPI `status_code=204` + `response_model`** - FastAPI asserts no body on 204 and crashes at import: `AssertionError: Status code 204 must not have a response body`. Don't set `status_code=204` on the decorator and don't return a Pydantic model; instead return `Response(status_code=204)` from the body.
+- **`window.prompt` / `window.confirm` blocked silently** - the iframe sandbox does NOT include `allow-modals`, so native modal dialogs return immediately as if cancelled. Symptom: rename / delete buttons "do nothing" with no console error. Fix: use the native `<dialog>` element (no sandbox flag needed) or build inline edit affordances. The manifest's `iframe.sandbox` field is advisory; the host's hardcoded list is what counts.
+- **LightRAG `ollama_embed` dim validator wraps the function** - direct `await ollama_embed(texts, embed_model=..., host=...)` raises `ValueError: Embedding dimension mismatch detected: total elements (768) cannot be evenly divided by expected dimension (1024)` because the wrapper checks against a hardcoded default. Pass `ollama_embed.func` to your `EmbeddingFunc(func=...)` to bypass; LightRAG's outer `EmbeddingFunc(embedding_dim=...)` is the real source of truth.
+- **LightRAG `anthropic_complete_if_cache` breaks on the query path** - the bundled adapter hardcodes `stream=True` in the SDK call but its internal `stream_response()` is fragile when the SDK returns a `Message` object on certain calls (`'async for' requires an object with __aiter__ method, got Message`). Indexing works, query fails with empty answer. Workaround: write your own llm_model_func that calls `anthropic.AsyncAnthropic().messages.create(...)` directly in non-streaming mode and returns a string.
+- **Anthropic SDK ≤ 0.40 doesn't know Claude 4.x model names** - pin to `anthropic>=0.100.0` (or current). Older SDKs accept the model string but mishandle the response shape and return `Message` instead of the expected stream chunk, which cascades into the LightRAG breakage above.
+- **Synapse data_collection sequential file specs need `max_index` as int + per-file `path`** - if you mirror docs into a `data_collection` whose `image_1` spec has `is_sequential=true`, the unit-create payload must use `meta.max_index = N` (a plain integer, NOT a `{spec: N}` dict despite the model docstring) AND each file entry must include `"path": "<filename>"` alongside `"checksum"`, otherwise `_create_data_unit_files` silently skips the bridge row creation. Two-step flow: POST `/data_units/` (list-shaped, returns the new unit) then POST `/data_unit_files/` to attach indexed files.
+- **Synapse tenant has no default Storage row out of the box** - `POST /data_files/` returns 500 `Storage matching query does not exist` until you create one (Django shell: `Storage.objects.create(tenant=..., name='default', category='internal', provider='file_system', configuration={'location':'/srv/media','base_url':'/media/'}, is_default=True)`). Then nginx serves `/media/` from `/srv/media` in the `synapse-resources` volume. There is no public REST endpoint for creating storages.
 
 ## Recipes
 
