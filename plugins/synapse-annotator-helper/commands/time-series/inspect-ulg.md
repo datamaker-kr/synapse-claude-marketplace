@@ -10,7 +10,7 @@ PX4 ULog 파일(.ulg)에 포함된 토픽, 필드, 샘플레이트를 분석하�
 
 ## Interactive-First Design
 
-**중요**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-time-series:inspect-ulg`만 입력해도 동작해야 합니다. 인자가 없으면 `AskUserQuestion`으로 단계별로 안내하세요. 모든 인자를 미리 제공하면 대화 없이 바로 실행합니다.
+**중요**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-annotator-helper:time-series:inspect-ulg`만 입력해도 동작해야 합니다. 인자가 없으면 `AskUserQuestion`으로 단계별로 안내하세요. 모든 인자를 미리 제공하면 대화 없이 바로 실행합니다.
 
 ## Arguments (모두 선택적 — 없으면 대화형으로 질문)
 
@@ -99,7 +99,7 @@ python3 <tmpdir>/ulg2dm.py --input "<ulg-path>" --list-topics
 ```
 
 마지막에 다음 단계를 안내합니다:
-- "트랙 설정을 만들려면 `/synapse-time-series:create-track-config`를 사용하세요"
+- "트랙 설정을 만들려면 `/synapse-annotator-helper:time-series:create-track-config`를 사용하세요"
 - PX4 센서 토픽에 대한 자세한 정보는 스킬 reference의 `px4-sensor-catalog.md`를 참조할 수 있음을 안내합니다
 
 ## Error Handling

@@ -10,7 +10,7 @@ PX4 ULG 비행 로그 파일을 트랙 설정 YAML에 따라 dm_schema JSON으�
 
 ## Interactive-First Design
 
-**IMPORTANT**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-time-series:convert-ulg`만 입력해도 동작합니다. 누락된 정보는 `AskUserQuestion`으로 단계별 안내하세요. 모든 인자를 한꺼번에 제공하면 대화 없이 바로 진행할 수도 있습니다.
+**IMPORTANT**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-annotator-helper:time-series:convert-ulg`만 입력해도 동작합니다. 누락된 정보는 `AskUserQuestion`으로 단계별 안내하세요. 모든 인자를 한꺼번에 제공하면 대화 없이 바로 진행할 수도 있습니다.
 
 ## Arguments (모두 선택적 — 누락 시 대화형으로 질문)
 
@@ -69,7 +69,7 @@ Options:
 
 ```
 트랙 설정 YAML을 찾을 수 없습니다.
-  /synapse-time-series:create-track-config 으로 먼저 YAML을 만드세요.
+  /synapse-annotator-helper:time-series:create-track-config 으로 먼저 YAML을 만드세요.
 ```
 
 **출력 경로:**
@@ -139,9 +139,9 @@ python3 <tmpdir>/validate_dm_schema.py <output-json>
   - track "battery" channel "전류": NaN 값 3개 발견
 
 YAML 설정을 확인해주세요:
-  /synapse-time-series:create-track-config --source <ulg-file>
+  /synapse-annotator-helper:time-series:create-track-config --source <ulg-file>
 
-자동 수정이 필요하면: "스키마 오류 수정해줘" → synapse-schema-debugger 에이전트가 자동 진단 및 수정을 도와줍니다.
+자동 수정이 필요하면: "스키마 오류 수정해줘" → annotator-time-series-schema-debugger 에이전트가 자동 진단 및 수정을 도와줍니다.
 ```
 
 ### Step 6: 결과 보고
@@ -157,7 +157,7 @@ YAML 설정을 확인해주세요:
 - 검증: 통과
 
 다음 단계:
-  - 일괄 변환: /synapse-time-series:convert-ulg --input-dir ./ulg/ --config track-config.yaml
+  - 일괄 변환: /synapse-annotator-helper:time-series:convert-ulg --input-dir ./ulg/ --config track-config.yaml
   - 업로드: /synapse-upload:upload
 ```
 

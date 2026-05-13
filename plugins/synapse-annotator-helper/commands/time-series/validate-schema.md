@@ -10,7 +10,7 @@ allowed-tools: ["Bash", "Read", "Write", "Glob", "AskUserQuestion"]
 
 ## Interactive-First Design
 
-**중요**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-time-series:validate-schema`만 입력해도 동작해야 합니다. 인자가 없으면 `AskUserQuestion`으로 단계별로 안내하세요. 모든 인자를 미리 제공하면 대화 없이 바로 실행합니다.
+**중요**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-annotator-helper:time-series:validate-schema`만 입력해도 동작해야 합니다. 인자가 없으면 `AskUserQuestion`으로 단계별로 안내하세요. 모든 인자를 미리 제공하면 대화 없이 바로 실행합니다.
 
 ## Arguments (모두 선택적 — 없으면 대화형으로 질문)
 
@@ -79,7 +79,7 @@ python3 <tmpdir>/validate_dm_schema.py --dir "<directory>"
 | 채널 | 12개 |
 
 ## 다음 단계
-  - 일괄 변환: /synapse-time-series:convert-ulg --input-dir ./raw/ --config track-config.yaml
+  - 일괄 변환: /synapse-annotator-helper:time-series:convert-ulg --input-dir ./raw/ --config track-config.yaml
   - 업로드: /synapse-upload:upload
 ```
 
@@ -94,7 +94,7 @@ python3 <tmpdir>/validate_dm_schema.py --dir "<directory>"
 | 2 | meta.duration | startTime/endTime 차이와 불일치 | duration = (endTime - startTime) / 1000 |
 | 3 | meta.nSamples | timestamps 길이와 불일치 | len(timestamps)로 재계산 필요 |
 
-자동 수정이 필요하면: "스키마 오류 수정해줘" → synapse-schema-debugger 에이전트가 자동 진단 및 수정을 도와줍니다.
+자동 수정이 필요하면: "스키마 오류 수정해줘" → annotator-time-series-schema-debugger 에이전트가 자동 진단 및 수정을 도와줍니다.
 ```
 
 ### Step 5: 자동 수정 제안
@@ -110,7 +110,7 @@ python3 <tmpdir>/validate_dm_schema.py --dir "<directory>"
 자동 수정을 진행할까요?"
 ```
 
-승인하면 Python 스크립트로 수정합니다. 자동 수정 로직(channelMeta 자동 생성, meta.duration/nSamples 재계산)을 임시 Python 스크립트로 작성하여 실행하세요. 복잡한 오류는 **synapse-schema-debugger 에이전트**로 위임합니다.
+승인하면 Python 스크립트로 수정합니다. 자동 수정 로직(channelMeta 자동 생성, meta.duration/nSamples 재계산)을 임시 Python 스크립트로 작성하여 실행하세요. 복잡한 오류는 **annotator-time-series-schema-debugger 에이전트**로 위임합니다.
 
 수정 후 다시 검증을 실행하여 통과 여부를 확인합니다.
 

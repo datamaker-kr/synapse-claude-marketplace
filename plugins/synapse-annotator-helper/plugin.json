@@ -1,0 +1,23 @@
+{
+  "name": "synapse-annotator-helper",
+  "version": "1.0.0",
+  "description": "Synapse 어노테이터 데이터 임포트 헬퍼 — 어노테이션 type 별 subagent 가 raw 데이터를 dm_schema JSON 으로 변환합니다. 현재 지원: time-series (PX4 ULG).",
+  "author": { "name": "datamaker-kr Organization" },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": ["synapse", "annotator", "annotation", "import", "dm-schema", "time-series", "ulg", "px4"],
+  "commands": [
+    "./commands/help.md",
+    "./commands/time-series/help.md",
+    "./commands/time-series/inspect-ulg.md",
+    "./commands/time-series/create-track-config.md",
+    "./commands/time-series/convert-ulg.md",
+    "./commands/time-series/validate-schema.md"
+  ],
+  "skills": ["./skills/time-series/timeseries-data-pipeline/SKILL.md"],
+  "agents": [
+    "./agents/time-series/annotator-time-series.md",
+    "./agents/time-series/annotator-time-series-schema-debugger.md"
+  ]
+}

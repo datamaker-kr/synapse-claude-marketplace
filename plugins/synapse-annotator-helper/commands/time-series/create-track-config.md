@@ -10,7 +10,7 @@ allowed-tools: ["Bash", "Read", "Write", "Glob", "AskUserQuestion"]
 
 ## Interactive-First Design
 
-**IMPORTANT**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-time-series:create-track-config`만 입력해도 동작합니다. 누락된 정보는 `AskUserQuestion`으로 단계별 안내하세요. 모든 인자를 한꺼번에 제공하면 대화 없이 바로 진행할 수도 있습니다.
+**IMPORTANT**: 이 명령어는 완전한 대화형으로 설계되었습니다. 사용자가 인자 없이 `/synapse-annotator-helper:time-series:create-track-config`만 입력해도 동작합니다. 누락된 정보는 `AskUserQuestion`으로 단계별 안내하세요. 모든 인자를 한꺼번에 제공하면 대화 없이 바로 진행할 수도 있습니다.
 
 ## Arguments (모두 선택적 — 누락 시 대화형으로 질문)
 
@@ -186,8 +186,8 @@ track-config.yaml 저장 완료
 ```
 ## 다음 단계
 
-- 변환 테스트: /synapse-time-series:convert-ulg --config <path>
-- 설정 수정: /synapse-time-series:create-track-config --source <file> --output <path>
+- 변환 테스트: /synapse-annotator-helper:time-series:convert-ulg --config <path>
+- 설정 수정: /synapse-annotator-helper:time-series:create-track-config --source <file> --output <path>
 ```
 
 ## Error Handling

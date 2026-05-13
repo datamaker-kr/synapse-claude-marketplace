@@ -1,15 +1,18 @@
 ---
-name: synapse-timeseries-workflow
+name: annotator-time-series-workflow
 description: >
-  시계열 어노테이터 데이터 임포트를 위한 전체 파이프라인 워크플로우.
+  Synapse 어노테이터의 time-series type 데이터 임포트 워크플로우 안내 스킬.
+  `annotator-time-series` subagent 가 활성화된 경우 subagent 가 우선 처리하므로, 본 스킬은 subagent 미사용 시 보조 트리거로 동작한다.
   Use when user mentions "시계열 데이터 준비", "데이터 임포트", "ULG 변환",
   "dm_schema", "트랙 설정", "track config", "비행 로그 변환",
   "time series", "timeseries", "시계열 변환".
 ---
 
-# 시계열 데이터 파이프라인
+# annotator-time-series-workflow — 시계열 데이터 파이프라인 (보조 스킬)
 
-시계열 어노테이터용 데이터 임포트 전체 워크플로우. 원본 센서 로그(ULG 등)를 분석하고, 트랙 설정 YAML을 작성하고, dm_schema JSON으로 변환하여 Synapse 시계열 어노테이터에 로드할 수 있는 형태로 만든다.
+`synapse-annotator-helper` 플러그인의 time-series type 보조 트리거 스킬. 원본 센서 로그(ULG 등)를 분석하고, 트랙 설정 YAML을 작성하고, dm_schema JSON으로 변환하여 Synapse 시계열 어노테이터에 로드할 수 있는 형태로 만든다.
+
+> **참고**: 1차 진입 경로는 `annotator-time-series` subagent 이다. 자연어 호출 시 subagent 가 활성화되면 본 스킬보다 subagent 가 우선 처리한다. 본 스킬은 사용자가 키워드만 입력해 subagent 가 활성화되지 않은 경우의 보조 안내자로 동작한다.
 
 ## Interactive-First Principle
 
@@ -79,7 +82,7 @@ pip install pyulog pyyaml numpy
 | 구분 | 공통 (포맷 무관) | 포맷별 (현재 ULG) |
 |---|---|---|
 | 역할 | YAML 작성, dm_schema 검증 | 원본 파일 탐색, 데이터 변환 |
-| 커맨드 | `/create-track-config`, `/validate-schema` | `/inspect-{포맷}`, `/convert-{포맷}` |
+| 커맨드 | `/synapse-annotator-helper:time-series:create-track-config`, `:validate-schema` | `:inspect-{포맷}`, `:convert-{포맷}` |
 | 스크립트 | `validate_dm_schema.py` | `{포맷}2dm.py` |
 
 ### dm_schema JSON
@@ -126,13 +129,13 @@ pip install pyulog pyyaml numpy
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Step 1: 분석 — `/inspect-{포맷}`
+### Step 1: 분석 — `/synapse-annotator-helper:time-series:inspect-{포맷}`
 
 원본 raw 파일을 탐색하여 포함된 토픽, 필드, 샘플레이트 등을 확인한다. **포맷별** 커맨드를 사용한다.
 
 ```bash
 # ULG 예시
-/inspect-ulg /path/to/flight.ulg
+/synapse-annotator-helper:time-series:inspect-ulg /path/to/flight.ulg
 ```
 
 **출력 정보:**
@@ -144,12 +147,12 @@ pip install pyulog pyyaml numpy
 
 이 정보를 바탕으로 Step 2에서 어떤 채널을 포함할지 결정한다.
 
-### Step 2: YAML 작성 — `/create-track-config`
+### Step 2: YAML 작성 — `/synapse-annotator-helper:time-series:create-track-config`
 
 대화형으로 트랙 설정 YAML을 작성한다. **공통** 커맨드이며, 포맷에 관계없이 동일한 구조를 사용한다.
 
 ```bash
-/create-track-config
+/synapse-annotator-helper:time-series:create-track-config
 ```
 
 **대화형 진행 순서:**
@@ -182,13 +185,13 @@ tracks:
 
 상세 YAML 구조: [references/track-config-spec.md](references/track-config-spec.md) 참조
 
-### Step 3: 변환 테스트 — `/convert-{포맷}`
+### Step 3: 변환 테스트 — `/synapse-annotator-helper:time-series:convert-{포맷}`
 
 YAML 설정을 사용하여 원본 파일을 dm_schema JSON으로 변환한다. **포맷별** 커맨드를 사용한다.
 
 ```bash
 # ULG 예시
-/convert-ulg /path/to/flight.ulg --config track-config.yaml --output output.json
+/synapse-annotator-helper:time-series:convert-ulg /path/to/flight.ulg --config track-config.yaml --output output.json
 ```
 
 **변환 과정:**
@@ -205,16 +208,16 @@ YAML 설정을 사용하여 원본 파일을 dm_schema JSON으로 변환한다. 
 
 | 원인 | 해결 |
 |---|---|
-| 토픽/필드명 오타 | `/inspect-{포맷}`으로 정확한 이름 확인 |
+| 토픽/필드명 오타 | `/synapse-annotator-helper:time-series:inspect-{포맷}`으로 정확한 이름 확인 |
 | 존재하지 않는 토픽 | 해당 비행에서 기록되지 않은 센서 — 채널 제거 |
 | 샘플 수 불일치 | 리샘플링 오류 — sample_rate 조정 |
 
-### Step 4: 검증 — `/validate-schema`
+### Step 4: 검증 — `/synapse-annotator-helper:time-series:validate-schema`
 
 생성된 dm_schema JSON이 시계열 어노테이터의 요구사항을 충족하는지 검증한다. **공통** 커맨드이다.
 
 ```bash
-/validate-schema output.json
+/synapse-annotator-helper:time-series:validate-schema output.json
 ```
 
 **검증 항목 (체크리스트):**
@@ -367,7 +370,7 @@ PX4의 일부 센서값은 raw 단위가 직관적이지 않다. YAML의 `scale`
 
 ### 센서 카탈로그
 
-PX4의 주요 토픽과 필드, 단위, 권장 scale 값은 [references/px4-sensor-catalog.md](references/px4-sensor-catalog.md)에 정리되어 있다. `/inspect-ulg` 실행 시 이 카탈로그를 참조하여 사용자에게 권장 설정을 안내한다.
+PX4의 주요 토픽과 필드, 단위, 권장 scale 값은 [references/px4-sensor-catalog.md](references/px4-sensor-catalog.md)에 정리되어 있다. `/synapse-annotator-helper:time-series:inspect-ulg` 실행 시 이 카탈로그를 참조하여 사용자에게 권장 설정을 안내한다.
 
 ## synapse-upload Integration
 
@@ -387,10 +390,10 @@ PX4의 주요 토픽과 필드, 단위, 권장 scale 값은 [references/px4-sens
 
 ```bash
 # 동일 설정으로 추가 파일 변환
-/convert-ulg /path/to/new_flight.ulg --config track-config.yaml --output new_output.json
+/synapse-annotator-helper:time-series:convert-ulg /path/to/new_flight.ulg --config track-config.yaml --output new_output.json
 
 # 검증 후 업로드
-/validate-schema new_output.json
+/synapse-annotator-helper:time-series:validate-schema new_output.json
 /synapse-upload:upload
 ```
 
