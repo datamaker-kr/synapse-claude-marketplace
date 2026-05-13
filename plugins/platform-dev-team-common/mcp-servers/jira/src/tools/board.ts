@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { jiraAgileFetch } from "../jira-client.js";
+import { jiraAgileFetchJson } from "../jira-client.js";
 
 export function registerBoardTools(server: McpServer) {
   server.registerTool(
@@ -13,7 +13,7 @@ export function registerBoardTools(server: McpServer) {
       }),
     },
     async ({ boardId }) => {
-      const data = await jiraAgileFetch(`/board/${boardId}`);
+      const data = await jiraAgileFetchJson(`/board/${boardId}`);
       return {
         content: [{
           type: "text" as const,
@@ -43,13 +43,13 @@ export function registerBoardTools(server: McpServer) {
     },
     async ({ boardId, sprintId }) => {
       if (sprintId) {
-        const data = await jiraAgileFetch(`/sprint/${sprintId}`);
+        const data = await jiraAgileFetchJson(`/sprint/${sprintId}`);
         return {
           content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
         };
       }
       // boardId는 refine에 의해 반드시 존재
-      const data = await jiraAgileFetch(`/board/${boardId}/sprint?state=active`);
+      const data = await jiraAgileFetchJson(`/board/${boardId}/sprint?state=active`);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(data.values, null, 2) }],
       };

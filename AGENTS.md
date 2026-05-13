@@ -41,6 +41,45 @@
 - `plugin.json`의 `commands`, `skills`, `agents` 목록은 실제 파일과 일치해야 합니다.
 - 기여 가이드: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)를 참조하세요.
 
+## Plugin Version Management
+
+Claude Code의 플러그인 업데이트 트리거는 다음 우선순위로 결정됩니다 (공식 문서 [Version management](https://code.claude.com/docs/en/plugins-reference#version-management)):
+
+1. `plugins/<plugin>/plugin.json`의 `version` (있으면 이것만 사용)
+2. `.claude-plugin/marketplace.json`의 `plugins[].version` (1번 fallback)
+3. git commit SHA (1·2번 모두 없을 때 fallback)
+
+> ⚠️ `plugin.json`에 `version`이 명시돼 있으면 **반드시 매 변경마다 bump**해야 사용자에게 업데이트가 적용됩니다. 커밋만 푸시하는 것으로는 업데이트되지 않습니다 (캐시된 동일 버전 유지).
+
+### 각 위치 의미와 갱신 규칙
+
+| 위치 | 역할 | 신규 플러그인 추가 | 기존 플러그인 코드 변경 |
+|------|------|-------------------|-------------------------|
+| `plugins/<plugin>/plugin.json` `version` | **플러그인 자체 버전 (update trigger 1순위)** | ✅ 필수 (예: `1.0.0`) | ✅ **필수 bump** |
+| `.claude-plugin/marketplace.json` `plugins[].version` | 마켓플레이스 엔트리의 fallback 버전 | ✅ 위와 동일 값으로 등록 | ⚠️ 권장 (위와 동기화) |
+| `.claude-plugin/marketplace.json` `metadata.version` | **마켓플레이스 카탈로그 자체** 버전 (플러그인 업데이트와 무관) | ✅ minor bump (카탈로그 변경) | ❌ 불필요 |
+| `.claude-plugin/plugin.json` `version` | 마켓플레이스 자체의 plugin.json (Claude Code update detection 비사용) | ❌ 불필요 | ❌ 불필요 |
+
+### SemVer 가이드
+
+- **Major** (X.0.0): 기존 명령/스킬/에이전트의 인터페이스 breaking change
+- **Minor** (X.Y.0): 하위 호환되는 기능 추가, 새 명령/스킬/에이전트 추가
+- **Patch** (X.Y.Z): 버그 수정, 문서 보완, 내부 리팩토링
+
+### 체크리스트 (변경 종류별)
+
+**신규 플러그인 추가 시**
+- [ ] `plugins/<plugin>/plugin.json`에 `"version": "1.0.0"` 명시
+- [ ] `.claude-plugin/marketplace.json`의 `plugins[]`에 동일 `version` 등록
+- [ ] `.claude-plugin/marketplace.json`의 `metadata.version` minor bump
+- [ ] 루트 `README.md`·`CHANGELOG.md`에 등록
+
+**기존 플러그인 코드/문서 변경 시**
+- [ ] **`plugins/<plugin>/plugin.json`의 `version` bump** (필수)
+- [ ] `.claude-plugin/marketplace.json`의 해당 `plugins[].version` 동기화 (권장)
+- [ ] `CHANGELOG.md` Unreleased 항목 추가
+- [ ] `metadata.version` 및 `.claude-plugin/plugin.json`은 손대지 않음
+
 ## Security & Configuration Tips
 - Do not commit secrets; reference env vars in examples (`SYNAPSE_TOKEN`) instead.
 - Keep `plugin.json` metadata accurate and avoid introducing local paths or credentials.

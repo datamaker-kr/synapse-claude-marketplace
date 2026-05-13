@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { jiraFetch } from "../jira-client.js";
+import { jiraFetch, jiraFetchJson } from "../jira-client.js";
 
 export function registerTransitionTools(server: McpServer) {
   server.registerTool(
@@ -13,7 +13,7 @@ export function registerTransitionTools(server: McpServer) {
       }),
     },
     async ({ ticketId }) => {
-      const data = await jiraFetch(`/issue/${ticketId}/transitions`);
+      const data = await jiraFetchJson<{ transitions: any[] }>(`/issue/${ticketId}/transitions`);
       const transitions = data.transitions.map((t: any) => ({
         id: t.id,
         name: t.name,
@@ -36,7 +36,7 @@ export function registerTransitionTools(server: McpServer) {
       }),
     },
     async ({ ticketId, targetStatus }) => {
-      const data = await jiraFetch(`/issue/${ticketId}/transitions`);
+      const data = await jiraFetchJson<{ transitions: any[] }>(`/issue/${ticketId}/transitions`);
       const transition = data.transitions.find(
         (t: any) => t.name === targetStatus || t.to?.name === targetStatus
       );
