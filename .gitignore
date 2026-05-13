@@ -54,6 +54,9 @@ temp/
 .env.local
 .env.*.local
 
+# Browser automation runtime
+.openchrome/
+
 # Coding Agents
 .claude/settings.local.json
 

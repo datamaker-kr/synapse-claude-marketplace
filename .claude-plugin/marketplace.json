@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Official Claude Code plugin marketplace for Synapse Products development",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -114,6 +114,21 @@
       "keywords": ["synapse", "synapse-app", "synapse-workspace", "iframe", "registry", "oci"],
       "category": "development",
       "tags": ["synapse", "synapse-app", "iframe", "oci", "app-store"]
+    },
+    {
+      "name": "synapse-annotator-helper",
+      "source": "./plugins/synapse-annotator-helper",
+      "description": "Synapse 어노테이터 데이터 임포트 헬퍼 — 어노테이션 type 별 subagent 가 raw 데이터를 dm_schema JSON 으로 변환 (현재 지원: time-series/ULG)",
+      "version": "1.0.0",
+      "author": {
+        "name": "datamaker-kr Organization"
+      },
+      "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["synapse", "annotator", "annotation", "import", "dm-schema", "time-series", "ulg", "px4"],
+      "category": "data-management",
+      "tags": ["synapse", "annotator", "annotation-tool-helper", "time-series", "ulg", "dm-schema"]
     }
   ]
 }

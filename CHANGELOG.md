@@ -9,6 +9,17 @@
 
 ### Added
 
+- `synapse-annotator-helper` 플러그인 추가 (v1.0.0)
+  - Synapse 어노테이터 데이터 임포트 헬퍼 — 어노테이션 type 별 subagent 가 raw 데이터를 dm_schema JSON 으로 자율 변환
+  - 설계 원칙: **subagent-first 하이브리드** (type 당 1개의 1차 진입 subagent + 결정적 도구 명령어 + 보조 스킬)
+  - 지원 type: `time-series` (PX4 ULG → dm_schema)
+  - 1차 진입 subagent: `annotator-time-series` (자연어 호출로 활성화, 4단계 워크플로우 자율 진행)
+  - 보조 subagent: `annotator-time-series-schema-debugger` (검증 오류 정밀 진단·수정)
+  - 보조 스킬: `annotator-time-series-workflow` (subagent 미사용 시 키워드 트리거)
+  - 명령어 6개: `/synapse-annotator-helper:help` + time-series 5개 도구 (`:time-series:help|inspect-ulg|create-track-config|convert-ulg|validate-schema`)
+  - 1 프로젝트 = 1 YAML 원칙의 트랙 설정 기반 일괄 변환 지원
+  - 향후 type 추가 컨벤션 명시 (`agents/<type>/`, `commands/<type>/`, `skills/<type>/`)
+  - 한국어 README 포함
 - `sdd-helper` 플러그인 추가 (v1.0.0)
   - 4개 스킬: init-specs, specify-with-requirements, plan-with-specs, update-requirements
   - 1개 에이전트: spec-manager
@@ -34,9 +45,9 @@
 
 ### Changed
 
-- 마켓플레이스 버전 1.2.0으로 업데이트
-- 루트 README.md 플러그인 테이블 확장 (2개 → 6개)
-  - synapse-export, synapse-upload, speckit-helper, sdd-helper 상세 섹션 추가
+- 마켓플레이스 버전 1.5.0으로 업데이트 (synapse-annotator-helper 플러그인 추가)
+- 루트 README.md에 synapse-annotator-helper 섹션 및 설치 안내 추가 (플러그인 테이블 7개로 확장)
+- 플러그인 명칭 변경: `synapse-time-series` → `synapse-annotator-helper` (정식 릴리즈 전 in-place 재명명, 외부 영향 없음). 시계열 자산은 `time-series` type 하위로 재배치되어 향후 image/video/3d 등 다른 type 도 동일 컨벤션으로 추가 가능
 - AGENTS.md에 플러그인 문서화 필수 규칙 추가
   - README 필수, 필수 섹션, 루트 README 등록, 한글 문서, plugin.json 정합성
 - `platform-dev-team-common` Jira MCP 도구 응답 확장 및 일관화
@@ -67,6 +78,8 @@
 | synapse-upload | 1.0.0 | AI 기반 Synapse 데이터 업로드 |
 | synapse-export | 1.0.0 | AI 기반 Synapse 어노테이션 내보내기 |
 | sdd-helper | 1.0.0 | SDD 경량 워크플로우 플러그인 |
+| synapse-applications | 0.3.0 | Synapse App을 OCI 이미지로 빌드/배포 |
+| synapse-annotator-helper | 1.0.0 | 어노테이터 데이터 임포트 헬퍼 (현재 time-series/ULG) |
 
 ## [1.1.1] - 2026-02-06
 

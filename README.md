@@ -48,6 +48,9 @@ Synapse 제품군 개발을 위한 공식 Claude Code 플러그인 마켓플레�
 
 # 명세 기반 개발 (SDD) — 경량 워크플로우
 /plugin install sdd-helper@synapse-marketplace
+
+# 어노테이터 데이터 임포트 헬퍼 (현재: time-series/ULG)
+/plugin install synapse-annotator-helper@synapse-marketplace
 ```
 
 ## 사용 가능한 플러그인
@@ -60,6 +63,7 @@ Synapse 제품군 개발을 위한 공식 Claude Code 플러그인 마켓플레�
 | [synapse-upload](#synapse-upload) | AI 기반 Synapse 데이터 업로드 | 1.0.0 | data |
 | [speckit-helper](#speckit-helper) | 명세 기반 개발(SDD) 플러그인 | 1.0.0 | workflow |
 | [sdd-helper](#sdd-helper) | SDD 경량 워크플로우 플러그인 | 1.0.0 | workflow |
+| [synapse-annotator-helper](#synapse-annotator-helper) | 어노테이터 데이터 임포트 헬퍼 (type 별 subagent · 현재 time-series/ULG) | 1.0.0 | data |
 
 ---
 
@@ -245,6 +249,45 @@ SDD(Spec-Driven Development) 경량 워크플로우 플러그인입니다. 요�
 | 에이전트 | 목적 |
 |----------|------|
 | **spec-manager** | 스펙 문서 라이프사이클 관리 |
+
+---
+
+## synapse-annotator-helper
+
+Synapse 어노테이터 데이터 임포트 헬퍼 플러그인. 어노테이션 type 별 1차 진입 subagent 가 raw 데이터를 dm_schema JSON 까지 자율 변환합니다. 명령어는 subagent 가 dispatch 하는 도구이자 직접 호출/스크립팅 경로로도 동작합니다.
+
+### 지원 어노테이션 type
+
+| Type | 상태 | 1차 진입 subagent |
+|------|------|-------------------|
+| `time-series` | ✅ 지원 | `annotator-time-series` (PX4 ULG → dm_schema) |
+| `image` / `video` / `3d` / `text` / `audio` | ⏳ 미지원 | — |
+
+### 명령어 (6개)
+
+| 명령어 | 설명 |
+|--------|------|
+| `/synapse-annotator-helper:help` | 지원 type 및 subagent 안내 |
+| `/synapse-annotator-helper:time-series:help` | time-series 워크플로우 도움말 |
+| `/synapse-annotator-helper:time-series:inspect-ulg` | ULG 파일의 토픽/필드/샘플레이트 탐색 |
+| `/synapse-annotator-helper:time-series:create-track-config` | 트랙 설정 YAML 생성 |
+| `/synapse-annotator-helper:time-series:convert-ulg` | ULG → dm_schema JSON 변환 |
+| `/synapse-annotator-helper:time-series:validate-schema` | dm_schema JSON 검증 |
+
+### 스킬 (1개)
+
+| 스킬 | 트리거 키워드 | 역할 |
+|------|---------------|------|
+| **annotator-time-series-workflow** | "시계열 데이터 준비", "ULG 변환", "dm_schema 생성", "트랙 설정" | subagent 미사용 시 보조 트리거 |
+
+### Subagent (2개)
+
+| Subagent | 역할 |
+|----------|------|
+| **annotator-time-series** | ★ 1차 진입 — ULG 탐색부터 스키마 검증까지 자율 실행 |
+| **annotator-time-series-schema-debugger** | 보조 — dm_schema 검증 오류 자동 진단 및 수정 제안 |
+
+> 어노테이션 type 추가 절차는 `plugins/synapse-annotator-helper/README.md` 의 "어노테이션 type 추가하기" 섹션을 참조하세요.
 
 ---
 
