@@ -191,6 +191,7 @@ MCP 서버가 제공하는 도구들은 `/sync-jira-tickets` 외에도 Claude와
 | `jira_search_tickets` | JQL로 티켓 검색 | `jql`, `maxResults`, `fields[]` |
 | `jira_create_ticket` | 새 티켓 생성 | `projectKey`, `summary`, `issueType` |
 | `jira_update_ticket` | 티켓 필드 수정 | `ticketId`, `fields` |
+| `jira_update_ticket_from_markdown` | markdown을 ADF로 변환해 description/custom field 업데이트 | `ticketId`, `markdown`, `field?`, `markerStart?`, `markerEnd?` |
 
 #### 상태 전이
 
@@ -270,6 +271,67 @@ jira_get_ticket({
 })
 ```
 
+#### `jira_update_ticket_from_markdown` — markdown을 ADF로 변환해 업데이트
+
+`sdd-helper`의 `/sync-to-jira` 스킬이 사용하는 도구. markdown 본문을 ADF JSON으로 변환한 뒤 Jira `description` (또는 임의 custom field)에 PUT 합니다.
+
+| 인자 | 타입 | 설명 |
+|------|------|------|
+| `ticketId` | `string` (필수) | 티켓 ID (예: `SYN-1234`) |
+| `markdown` | `string` (필수) | ADF로 변환할 markdown 본문 |
+| `field` | `string` (선택, 기본 `"description"`) | 대상 필드. `"description"` 또는 `"customfield_<id>"` |
+| `markerStart` | `string` (선택) | description splice 시작 마커 (예: `"<!-- sdd:start -->"`) |
+| `markerEnd` | `string` (선택) | description splice 종료 마커 (예: `"<!-- sdd:end -->"`) |
+
+동작:
+
+- `field === "description"` 이고 `markerStart` / `markerEnd`가 모두 주어진 경우, 기존 description ADF에서 두 마커 사이의 블록만 새 ADF로 교체합니다 (마커 외부 영역 보존).
+- 마커가 존재하지 않으면 description 끝에 `[markerStart, ...새 내용, markerEnd]` 블록을 append 합니다.
+- 그 외(기본 / custom field)는 필드를 통째로 새 ADF로 덮어씁니다.
+
+응답 형태:
+
+```json
+{
+  "ticketId": "SYN-1234",
+  "field": "description",
+  "mode": "splice-marker",
+  "warnings": [],
+  "url": "https://datamaker.atlassian.net/browse/SYN-1234"
+}
+```
+
+지원하는 markdown 변환 범위 (그 외는 plain paragraph fallback + `warnings` 누적):
+
+- heading 1–6
+- 단락 + `strong` / `em` / `code` / `strike` 인라인 mark
+- fenced code block (`language` attr 보존)
+- bullet/ordered list (중첩 포함)
+- task list (`- [ ]` / `- [x]` → `taskItem state TODO|DONE`)
+- GFM table (header row + body rows)
+- link (`[text](href)`)
+- blockquote
+- 이미지 → text + link 마크 fallback (ADF media 노드는 미지원)
+
+호출 예시:
+
+```typescript
+// 1) description의 마커 구간만 교체
+jira_update_ticket_from_markdown({
+  ticketId: "SYN-1234",
+  markdown: "## SDD: Specs\n\n...",
+  markerStart: "<!-- sdd:start -->",
+  markerEnd: "<!-- sdd:end -->",
+})
+
+// 2) custom field 전체 덮어쓰기
+jira_update_ticket_from_markdown({
+  ticketId: "SYN-1234",
+  markdown: "# 기술 명세\n\n...",
+  field: "customfield_10800",
+})
+```
+
 ## 프로젝트 구조
 
 ```
@@ -277,8 +339,9 @@ mcp-servers/jira/
 ├── src/
 │   ├── index.ts              # 서버 엔트리포인트 (도구 등록 + stdio 연결)
 │   ├── jira-client.ts        # Jira REST API 클라이언트 (fetch 래퍼)
+│   ├── markdown-to-adf.ts    # markdown → ADF 변환기 (jira_update_ticket_from_markdown용)
 │   └── tools/
-│       ├── ticket.ts         # 티켓 CRUD 도구 (4개)
+│       ├── ticket.ts         # 티켓 CRUD 도구 (5개)
 │       ├── transition.ts     # 상태 전이 도구 (2개)
 │       ├── field.ts          # 커스텀 필드 도구 (1개)
 │       ├── board.ts          # 보드/스프린트 도구 (2개)
@@ -346,6 +409,11 @@ CHANGELOG.md의 티켓 항목은 다음 형식이어야 합니다:
 
 ## 변경 이력
 
+- **v1.1.0** (2026-05-13): `jira_update_ticket_from_markdown` 도구 추가
+  - `marked` 기반 markdown → ADF 변환 모듈 (`src/markdown-to-adf.ts`) 신설
+  - description 마커(`<!-- sdd:start -->` / `<!-- sdd:end -->`) splice 또는 전체 덮어쓰기 모드 지원
+  - sdd-helper의 `/sync-to-jira` 스킬이 사용
+  - `npm test`로 markdown→ADF 골든 테스트 + splice 단위 테스트 13개 검증
 - **v1.0.0** (2026-03-05): 초기 구현
   - Jira REST API 클라이언트
   - 11개 MCP 도구 (티켓, 전이, 필드, 보드, CHANGELOG)

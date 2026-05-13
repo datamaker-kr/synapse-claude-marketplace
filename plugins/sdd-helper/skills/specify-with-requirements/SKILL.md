@@ -1,7 +1,7 @@
 ---
 name: specify-with-requirements
-description: Read requirements markdown and generate detailed technical specifications. Analyzes requirements, clarifies ambiguities, and updates the specs document. Use when user has written requirements and wants to generate specs.
-allowed-tools: Read, Write, Edit, Glob, Grep
+description: Read requirements markdown and generate detailed technical specifications. Analyzes requirements, clarifies ambiguities, and updates the specs document. Use when user has written requirements and wants to generate specs. Also handles lite→full pipeline escalation.
+allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion
 user-invocable: true
 ---
 
@@ -28,6 +28,36 @@ If a task title (not slug) is provided, convert it to a slug to find the matchin
 1. Find `specs/{slug}/requirements.md`
 2. If the file doesn't exist, inform the user and suggest running `/init-specs` first
 3. Read the full requirements document
+
+### Step 1.5: Detect Pipeline Mode (Lite → Full Escalation)
+
+Inspect the `Pipeline:` header field in `requirements.md`:
+
+- `Pipeline: full` (or missing — treat missing as `full` for backward compatibility): proceed to Step 2 normally.
+- `Pipeline: lite`: this slug was initialized as a lite-pipeline task and does **not** yet have a `specs.md` file. Calling `/specify-with-requirements` on a lite task means the user wants to **escalate** to full pipeline.
+
+  In this case:
+
+  1. Use AskUserQuestion to confirm:
+     ```
+     이 태스크는 lite 파이프라인(`Pipeline: lite`)으로 초기화되어 specs.md가 없습니다.
+     full 파이프라인으로 escalate 하시겠습니까?
+     ```
+     Options: `Escalate (recommended)` / `Cancel`.
+  2. If **Cancel**: print a one-line note ("Escalation cancelled — task remains lite") and stop.
+  3. If **Escalate**:
+     a. Update `requirements.md` header: change `Pipeline: lite` → `Pipeline: full`. Also bump `Updated: {today}`.
+     b. Create `specs/{slug}/specs.md` from the standard template (status `Pending` — will be filled in Step 5 below).
+     c. If `specs/{slug}/plans.md` exists and its current `Status` is not `Pending`, edit its header to:
+        ```
+        > Status: Stale (specs added — re-run /plan-with-specs to regenerate)
+        ```
+        and add a row to its Progress Tracking table:
+        ```
+        | Escalation | Stale | {today} | | lite→full escalation: specs.md added, plan needs regeneration |
+        ```
+     d. Append a Clarification Log entry to the new `specs.md` (will be added during Step 5 generation) with `Question: "lite→full escalation"`, `Answer: "approved by user"`, today's date.
+  4. Continue to Step 2.
 
 ### Step 2: Validate Requirements Completeness
 
@@ -209,3 +239,4 @@ If the user requests changes to requirements during this process:
 - Flag any requirements that are technically infeasible or very costly
 - Include a clarification log for audit trail
 - Do not proceed to plan generation - wait for user to run `/plan-with-specs`
+- When escalating from lite (Step 1.5), never silently regenerate `plans.md`. Mark it stale and let the user explicitly re-run `/plan-with-specs`.

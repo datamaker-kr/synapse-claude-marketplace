@@ -1,8 +1,11 @@
 # SDD Helper
 
 Claude Code용 경량 Spec-Driven Development(SDD) 워크플로우 플러그인입니다.
-요구사항 작성부터 기술 명세 생성, 구현 계획 수립까지의 전체 라이프사이클을 4개의 스킬로 관리합니다.
-SDD를 처음 도입하는 팀이 최소한의 학습 비용으로 바로 시작할 수 있도록 설계되었습니다.
+요구사항 작성부터 기술 명세 생성, 구현 계획 수립, Jira push-back까지 전체 라이프사이클을 6개의 스킬로 관리합니다.
+
+**v1.1.0 주요 변경**:
+- **난이도 기반 파이프라인 분기**: `low` 난이도는 `requirements → plans` *lite* 흐름으로, `medium`/`high`는 기존 *full* 흐름으로 분기.
+- **Jira MCP 연동 (선택)**: `/init-specs`가 Jira 티켓에서 requirements 초안을 자동 작성하고, 새 `/sync-to-jira` 스킬이 완성된 specs/plans를 Jira description으로 push-back (Markdown → ADF 자동 변환).
 
 ## SDD란?
 
@@ -35,47 +38,49 @@ SDD를 처음 도입하는 팀이 최소한의 학습 비용으로 바로 시작
 
 ## 워크플로우 다이어그램
 
+난이도에 따라 두 가지 파이프라인으로 분기합니다.
+
 ```mermaid
-graph LR
-    subgraph 초기화
-        A["/init-specs"]
+graph TB
+    A["/init-specs<br/>(--difficulty 또는<br/>Jira metadata 추론)"]
+
+    A -- "low" --> B1["requirements.md<br/>직접 작성"]
+    A -- "medium / high" --> B2["requirements.md<br/>직접 작성<br/>(Jira MCP 가용 시 자동 채움)"]
+
+    subgraph lite["lite 파이프라인 (낮은 난이도)"]
+        B1 --> P1["/plan-with-requirements"]
+        P1 --> R1["plans.md (Ready)"]
     end
 
-    subgraph 요구사항
-        B["사용자가<br/>requirements.md<br/>직접 작성"]
+    subgraph full["full 파이프라인 (중·상 난이도)"]
+        B2 --> C["/specify-with-requirements"]
+        C --> D["사용자 검토 & 명확화"]
+        D --> E["/plan-with-specs"]
+        E --> R2["plans.md (Ready)"]
     end
 
-    subgraph 명세 생성
-        C["/specify-with-requirements"]
-        D["사용자 검토<br/>& 명확화"]
-    end
-
-    subgraph 계획 생성
-        E["/plan-with-specs"]
-    end
-
-    subgraph 변경 관리
-        F["/update-requirements"]
-    end
-
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> G["구현 진행"]
-    G -. "요구사항 변경 시" .-> F
-    F -. "연쇄 업데이트" .-> C
+    R1 --> G["구현 진행"]
+    R2 --> G
+    G -- "요구사항 변경 시" --> F["/update-requirements"]
+    F -. "lite cascade" .-> P1
+    F -. "full cascade" .-> C
+    G -- "(선택) Jira push-back" --> S["/sync-to-jira<br/>Markdown → ADF"]
 
     style A fill:#4a9eff,stroke:#2d7cd6,color:#fff
-    style B fill:#636e72,stroke:#4a5459,color:#fff
+    style B1 fill:#636e72,stroke:#4a5459,color:#fff
+    style B2 fill:#636e72,stroke:#4a5459,color:#fff
     style C fill:#6c5ce7,stroke:#5a4bd1,color:#fff
     style D fill:#6c5ce7,stroke:#5a4bd1,color:#fff
     style E fill:#00b894,stroke:#00967a,color:#fff
+    style P1 fill:#00b894,stroke:#00967a,color:#fff
+    style R1 fill:#2d3436,stroke:#000,color:#fff
+    style R2 fill:#2d3436,stroke:#000,color:#fff
     style F fill:#e17055,stroke:#c0392b,color:#fff
     style G fill:#636e72,stroke:#4a5459,color:#fff
+    style S fill:#fdcb6e,stroke:#d4a233,color:#000
 ```
 
-핵심 원칙: **사용자가 요구사항을 직접 작성**하고, AI가 기술 명세와 구현 계획을 생성합니다.
+핵심 원칙: **사용자가 요구사항을 직접 작성**(또는 Jira에서 자동 채움)하고, AI가 기술 명세와 구현 계획을 생성하며, 필요 시 결과를 Jira로 다시 push-back 합니다.
 
 ## 스킬 레퍼런스
 
@@ -83,10 +88,12 @@ graph LR
 
 | 스킬 | 설명 | 트리거 키워드 | 사용 예시 |
 |------|------|-------------|----------|
-| `/init-specs` | 스펙 문서 초기화 + Git 브랜치 생성 | "init specs", "새 태스크", "스펙 초기화" | `/init-specs SYN-1234 사용자 인증 기능` |
-| `/specify-with-requirements` | 요구사항 → 기술 명세 자동 생성 | "specify", "기술 명세", "요구사항 분석" | `/specify-with-requirements 사용자-인증-기능` |
-| `/plan-with-specs` | 명세 → 구현 계획 자동 생성 | "plan", "구현 계획", "계획 생성" | `/plan-with-specs 사용자-인증-기능` |
-| `/update-requirements` | 요구사항 변경 및 연쇄 업데이트 | "update requirements", "요구사항 변경" | `/update-requirements TOTP 2단계 인증 추가` |
+| `/init-specs` | 스펙 문서 초기화 + Git 브랜치 생성. 난이도/파이프라인 분기, Jira 자동 채움 | "init specs", "새 태스크", "스펙 초기화" | `/init-specs SYN-1234 사용자 인증 기능 --difficulty medium` |
+| `/specify-with-requirements` | 요구사항 → 기술 명세 자동 생성 (full). lite→full 승격도 처리 | "specify", "기술 명세", "요구사항 분석", "escalate" | `/specify-with-requirements 사용자-인증-기능` |
+| `/plan-with-specs` | 명세 → 구현 계획 자동 생성 (full 파이프라인) | "plan", "구현 계획", "계획 생성" | `/plan-with-specs 사용자-인증-기능` |
+| `/plan-with-requirements` | 요구사항 → 구현 계획 직행 (lite 파이프라인) | "lite plan", "간단한 계획" | `/plan-with-requirements 작은-버그-수정` |
+| `/update-requirements` | 요구사항 변경 및 연쇄 업데이트 (lite/full 모드 자동 인식) | "update requirements", "요구사항 변경" | `/update-requirements TOTP 2단계 인증 추가` |
+| `/sync-to-jira` | 완성된 specs/plans를 Jira description으로 push-back (Markdown → ADF) | "sync to jira", "jira 업데이트", "ADF" | `/sync-to-jira 사용자-인증-기능 --target both` |
 
 ## 에이전트 레퍼런스
 
@@ -100,16 +107,36 @@ spec-manager 에이전트는 `user-invocable: false`로 설정되어 있으며, 
 
 ## 생성되는 산출물
 
-모든 SDD 산출물은 프로젝트 루트의 `specs/` 디렉토리에 저장됩니다:
+모든 SDD 산출물은 프로젝트 루트의 `specs/` 디렉토리에 저장됩니다.
+
+**full 파이프라인** (medium / high 난이도):
 
 ```
 <project-root>/
 └── specs/
-    └── <task-slug>/                    # 태스크별 디렉토리
-        ├── requirements.md             # 사용자가 직접 작성하는 요구사항
+    └── <task-slug>/
+        ├── requirements.md             # 사용자가 직접 작성 (또는 Jira 자동 채움)
         ├── specs.md                    # AI가 생성하는 기술 명세
         └── plans.md                    # AI가 생성하는 구현 계획
 ```
+
+**lite 파이프라인** (low 난이도): `specs.md`는 생성되지 않습니다.
+
+```
+<project-root>/
+└── specs/
+    └── <task-slug>/
+        ├── requirements.md
+        └── plans.md
+```
+
+`requirements.md` 헤더에는 다음 필드가 포함됩니다:
+
+| Field | 값 | 역할 |
+|-------|---|------|
+| `Difficulty` | `low` / `medium` / `high` | 파이프라인 분기 결정 |
+| `Pipeline` | `lite` / `full` | 다른 스킬이 동작 모드를 결정할 때 참조 |
+| `Source` | `manual` / `jira:<ticket-id>` | 요구사항 출처 추적 |
 
 ### 문서 간 추적 가능성
 
@@ -121,11 +148,11 @@ FR-3                           →  TS-3                    →  Step 3, Step 4
 
 ### 문서 상태 흐름
 
-| 문서 | 상태 흐름 |
-|------|----------|
-| requirements.md | `Draft` → `Final` |
-| specs.md | `Pending` → `Draft` → `Final` |
-| plans.md | `Pending` → `Ready` → `In Progress` → `Completed` |
+| 문서 | 파이프라인 | 상태 흐름 |
+|------|-----------|----------|
+| requirements.md | both | `Draft` / `Draft (from Jira)` → `Final` |
+| specs.md | full only | `Pending` → `Draft` → `Final` |
+| plans.md | both | `Pending` → `Ready` → `In Progress` → `Completed`. lite→full 승격 후에는 `Stale (specs added)` 단계가 추가될 수 있음. |
 
 ## 상세 사용 예시
 
@@ -175,9 +202,66 @@ FR-3                           →  TS-3                    →  Step 3, Step 4
 
 # Claude가:
 #   1. requirements.md에 FR-4: TOTP 기반 2단계 인증 추가
-#   2. specs.md에 TS-4: TOTP 구현 명세 추가
+#   2. specs.md에 TS-4: TOTP 구현 명세 추가 (lite 파이프라인이면 건너뜀)
 #   3. plans.md에 Step 5: TOTP 미들웨어 구현 추가
 #   4. 기존 완료된 단계는 보존
+```
+
+### 예시 B-2: lite 파이프라인 — 작은 버그 수정
+
+```bash
+# 낮은 난이도로 초기화 (specs.md 생성 안 됨)
+/init-specs SYN-9999 로그인 페이지 오타 수정 --difficulty low
+
+# requirements.md만 채워서 plan으로 직행
+/plan-with-requirements 로그인-페이지-오타-수정
+
+# Claude가:
+#   - plans.md에 구현 계획 작성 (FR-X 직접 참조, TS-X 없음)
+#   - Status: Ready
+```
+
+### 예시 B-3: lite → full 승격
+
+```bash
+# lite로 시작했지만 작업이 커지자 full로 전환
+/specify-with-requirements 로그인-페이지-오타-수정
+
+# Claude가:
+#   1. 승격 확인 (AskUserQuestion)
+#   2. requirements.md 헤더를 Pipeline: full 로 갱신
+#   3. specs.md 신규 생성
+#   4. 기존 plans.md는 "Stale (specs added)"로 마킹 → /plan-with-specs 재실행 필요
+```
+
+### 예시 C: Jira MCP 자동 채움 + push-back
+
+Jira MCP가 환경에 설치되어 있고 `JIRA_*` 환경변수가 설정된 경우에만 사용 가능합니다.
+
+```bash
+# Jira 티켓에서 requirements.md 초안 자동 생성
+/init-specs SYN-1234 사용자 인증 기능
+
+# Claude가:
+#   - Jira MCP의 jira_get_ticket 호출
+#   - summary → Overview, description의 Acceptance Criteria → FR-N 매핑
+#   - priority/labels로 난이도 추론 (--difficulty 명시되지 않은 경우)
+#   - requirements.md 헤더: Status: Draft (from Jira), Source: jira:SYN-1234
+
+# 사용자가 검토 후 다음 단계 진행
+/specify-with-requirements 사용자-인증-기능
+/plan-with-specs 사용자-인증-기능
+
+# 완성된 문서를 Jira description으로 push-back
+/sync-to-jira 사용자-인증-기능 --target both
+
+# Claude가:
+#   1. Jira MCP 가용성 확인
+#   2. specs.md + plans.md를 단일 markdown payload로 결합
+#   3. 현재 Jira description과 diff 표시
+#   4. 사용자 Apply 확인 후 Markdown → ADF 변환하여 PUT
+#   5. description의 <!-- sdd:start --> ~ <!-- sdd:end --> 구간만 교체
+#   6. Jira 이슈 링크 출력
 ```
 
 ### 예시 C: 처음 사용하는 경우
@@ -204,11 +288,23 @@ FR-3                           →  TS-3                    →  Step 3, Step 4
 #     4. /plan-with-specs <slug>
 ```
 
+## Jira MCP 연동
+
+`sdd-helper`는 `platform-dev-team-common` 플러그인이 제공하는 Jira MCP 서버와 자연스럽게 연동됩니다.
+
+| 연동 지점 | 사용 도구 | 효과 |
+|-----------|-----------|------|
+| `/init-specs` 자동 채움 | `jira_get_ticket` | Jira 이슈의 summary/description/AC를 `requirements.md`로 매핑 |
+| `/init-specs` 난이도 추론 | `jira_get_ticket` (priority, labels) | `--difficulty` 미지정 시 자동 분류 (`low` / `medium` / `high`) |
+| `/sync-to-jira` push-back | `jira_update_ticket_from_markdown` | `specs.md` / `plans.md`를 Markdown → ADF 변환 후 description 마커 구간에 PUT |
+
+Jira MCP가 설치되지 않았거나 환경변수가 없으면 위 기능은 **조용히 비활성화**되고, 나머지 오프라인 워크플로우(파일 생성/업데이트)는 정상 동작합니다. 설치 방법은 [`mcp-servers/jira/README.md`](../platform-dev-team-common/mcp-servers/jira/README.md)를 참조하세요.
+
 ## speckit-helper와의 비교
 
 | 관점 | speckit-helper | sdd-helper |
 |------|---------------|------------|
-| **복잡도** | 11개 커맨드, 4개 스킬, 2개 에이전트 | 4개 스킬, 1개 에이전트 |
+| **복잡도** | 11개 커맨드, 4개 스킬, 2개 에이전트 | 6개 스킬, 1개 에이전트 |
 | **접근 방식** | 자연어에서 전체 자동 생성 | 사용자가 요구사항 직접 작성, 명세/계획만 AI 생성 |
 | **출력 디렉토리** | `.speckit/<feature-slug>/` | `specs/<task-slug>/` |
 | **Git 연동** | 없음 | 브랜치 자동 생성 |
