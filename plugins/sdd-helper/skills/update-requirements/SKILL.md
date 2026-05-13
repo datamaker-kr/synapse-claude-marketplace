@@ -32,10 +32,19 @@ If no arguments are provided, ask the user what changes they want to make.
 1. List all `*/requirements.md` files in `specs/` directory
 2. If only one spec set exists, use it automatically
 3. If multiple exist, ask the user which one to update
-4. Read all three files for the selected slug:
-   - `specs/{slug}/requirements.md`
-   - `specs/{slug}/specs.md`
-   - `specs/{slug}/plans.md`
+4. Read the available files for the selected slug:
+   - `specs/{slug}/requirements.md` (always exists)
+   - `specs/{slug}/specs.md` (only for `Pipeline: full`; absent for lite)
+   - `specs/{slug}/plans.md` (always exists)
+
+### Step 1.5: Detect Pipeline Mode
+
+Read the `Pipeline:` header field from `requirements.md`:
+
+- `Pipeline: full` (or missing — treat missing as `full`): cascade through `specs.md` and `plans.md` as usual (Steps 4 + 5).
+- `Pipeline: lite`: **skip Step 4 entirely** (no `specs.md` exists). Cascade only to `plans.md` (Step 5), and treat the plan structure as the lite layout (steps reference `FR-X`, not `TS-X`).
+
+The mode determines which downstream files are touched. Mention the active mode in the Step 2 understood-changes summary so the user can confirm.
 
 ### Step 2: Analyze the Change Request
 
@@ -70,6 +79,8 @@ Apply changes to `specs/{slug}/requirements.md`:
 
 ### Step 4: Update Specs
 
+**Skip this step entirely if Step 1.5 detected `Pipeline: lite`** (no `specs.md` exists). Report it as `N/A (lite pipeline)` in Step 6.
+
 Read current `specs/{slug}/specs.md` and apply cascading changes:
 
 - **If specs were already generated** (status is not "Pending"):
@@ -88,7 +99,12 @@ Read current `specs/{slug}/specs.md` and apply cascading changes:
 
 ### Step 5: Update Plans
 
-Read current `specs/{slug}/plans.md` and apply cascading changes:
+Read current `specs/{slug}/plans.md` and apply cascading changes. The step references in plans differ by pipeline:
+
+- `Pipeline: full` → plan steps reference `TS-X`
+- `Pipeline: lite` → plan steps reference `FR-X` directly (no specs.md to bridge through)
+
+In both cases, treat the cascade as below.
 
 - **If plans were already generated** (status is not "Pending"):
   1. Identify which implementation steps are affected
@@ -114,12 +130,14 @@ Display a summary of all changes made:
 ```
 Requirements updated for: "{Original Task Title}"
 
+Pipeline: {lite | full}
+
 Changes applied:
   Requirements (specs/{slug}/requirements.md):
     - {change description}
 
   Specs (specs/{slug}/specs.md):
-    - {change description, or "No changes needed (still pending)"}
+    - {change description, "No changes needed (still pending)", or "N/A (lite pipeline)"}
 
   Plans (specs/{slug}/plans.md):
     - {change description, or "No changes needed (still pending)"}
@@ -156,10 +174,11 @@ If the change description is ambiguous:
 
 ## Important
 
-- Always read all three files before making changes
+- Always read the available files before making changes (lite pipeline has no `specs.md`)
 - Confirm understood changes with the user before applying
 - Preserve content that is not affected by the change
 - Maintain proper numbering (FR-X, TS-X, Step N) after additions/removals
-- Keep the Clarification Log updated in specs
+- Keep the Clarification Log updated in specs (full pipeline only)
 - Never silently drop requirements or specs - always report what was removed
 - Preserve completed step progress in plans unless explicitly invalidated
+- Respect `Pipeline:` header: skip specs cascade for `lite`, run full cascade for `full`/missing

@@ -1,6 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { jiraFetch, jiraFetchJson } from "../jira-client.js";
+import {
+  markdownToAdf,
+  type ADFBlock,
+  type ADFDocument,
+  type ADFTextNode,
+} from "../markdown-to-adf.js";
 
 const GET_DEFAULT_FIELDS = [
   "summary",
@@ -241,4 +247,138 @@ export function registerTicketTools(server: McpServer) {
       };
     }
   );
+
+  server.registerTool(
+    "jira_update_ticket_from_markdown",
+    {
+      title: "Jira 티켓 markdown 업데이트 (ADF 자동 변환)",
+      description:
+        "markdown 문자열을 ADF로 변환 후 description(또는 custom field)에 PUT 합니다. " +
+        "markerStart/End를 지정하면 description ADF 내부의 marker 블록 사이만 교체하고, " +
+        "그 외 영역은 보존합니다. marker가 없으면 description 끝에 새 marker 블록을 append.",
+      inputSchema: z.object({
+        ticketId: z
+          .string()
+          .regex(/^[A-Z]+-\d+$/)
+          .describe("티켓 ID (예: SYN-1234)"),
+        markdown: z.string().describe("ADF로 변환할 markdown 본문"),
+        field: z
+          .string()
+          .default("description")
+          .describe("대상 필드. 기본 'description', 또는 'customfield_<id>'"),
+        markerStart: z
+          .string()
+          .optional()
+          .describe("description splice용 시작 마커 문자열 (예: '<!-- sdd:start -->')"),
+        markerEnd: z
+          .string()
+          .optional()
+          .describe("description splice용 종료 마커 문자열 (예: '<!-- sdd:end -->')"),
+      }),
+    },
+    async ({ ticketId, markdown, field, markerStart, markerEnd }) => {
+      const { adf, warnings } = markdownToAdf(markdown);
+
+      let body: ADFDocument;
+      let mode: "replace-full" | "splice-marker" | "append-marker";
+      if (field === "description" && markerStart && markerEnd) {
+        const current = await jiraFetchJson<{ fields: { description: ADFDocument | null } }>(
+          `/issue/${ticketId}?fields=description`
+        );
+        const currentDoc: ADFDocument =
+          current.fields.description ?? {
+            version: 1,
+            type: "doc",
+            content: [],
+          };
+        const spliced = spliceAdfByMarkers(currentDoc, adf.content, markerStart, markerEnd);
+        body = spliced.doc;
+        mode = spliced.created ? "append-marker" : "splice-marker";
+        if (spliced.created) {
+          warnings.push("marker not found — description 끝에 새 marker 블록 추가");
+        }
+      } else {
+        body = adf;
+        mode = "replace-full";
+      }
+
+      await jiraFetch(`/issue/${ticketId}`, {
+        method: "PUT",
+        body: JSON.stringify({ fields: { [field]: body } }),
+      });
+
+      const base = (process.env.JIRA_BASE_URL ?? "").replace(/\/$/, "");
+      const url = base ? `${base}/browse/${ticketId}` : null;
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              { ticketId, field, mode, warnings, url },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+  );
+}
+
+// 마커 노드는 inline code mark가 적용된 단일 paragraph로 인코딩한다.
+// 예) <!-- sdd:start --> → { type: "paragraph", content: [{ type: "text", text: "<!-- sdd:start -->",
+//     marks: [{ type: "code" }] }] }
+function makeMarkerParagraph(text: string): ADFBlock {
+  const textNode: ADFTextNode = { type: "text", text, marks: [{ type: "code" }] };
+  return { type: "paragraph", content: [textNode] };
+}
+
+function isMarkerParagraph(block: ADFBlock, marker: string): boolean {
+  if (block.type !== "paragraph") return false;
+  const content = block.content;
+  if (content.length !== 1) return false;
+  const node = content[0];
+  if (node.type !== "text") return false;
+  if (node.text !== marker) return false;
+  return Array.isArray(node.marks) && node.marks.some((m) => m.type === "code");
+}
+
+export function spliceAdfByMarkers(
+  doc: ADFDocument,
+  newBlocks: ADFBlock[],
+  markerStart: string,
+  markerEnd: string
+): { doc: ADFDocument; created: boolean } {
+  const startIdx = doc.content.findIndex((b) => isMarkerParagraph(b, markerStart));
+  const endIdx = doc.content.findIndex((b) => isMarkerParagraph(b, markerEnd));
+
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    return {
+      doc: {
+        version: doc.version,
+        type: "doc",
+        content: [
+          ...doc.content,
+          makeMarkerParagraph(markerStart),
+          ...newBlocks,
+          makeMarkerParagraph(markerEnd),
+        ],
+      },
+      created: true,
+    };
+  }
+
+  return {
+    doc: {
+      version: doc.version,
+      type: "doc",
+      content: [
+        ...doc.content.slice(0, startIdx + 1),
+        ...newBlocks,
+        ...doc.content.slice(endIdx),
+      ],
+    },
+    created: false,
+  };
 }

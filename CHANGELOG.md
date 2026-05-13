@@ -9,11 +9,24 @@
 
 ### Added
 
+- `sdd-helper` 플러그인 1.1.0으로 확장 — 난이도 기반 파이프라인 분기 + Jira MCP 연동 (SYN-6873)
+  - **신규 스킬 `/plan-with-requirements`** — lite 파이프라인. `low` 난이도 작업에서 `requirements.md` → `plans.md`로 직행 (specs.md 단계 건너뜀).
+  - **신규 스킬 `/sync-to-jira`** — 완성된 `specs.md` / `plans.md`를 Jira 이슈 description으로 push-back. `<!-- sdd:start --> ~ <!-- sdd:end -->` 마커 사이만 교체하므로 사람이 직접 작성한 description은 보존됨. `--target spec|plan|both`, `--field description|customfield_<id>` 옵션 지원.
+  - **`/init-specs` 확장** — `--difficulty low|medium|high`, `--pipeline lite|full`, `--no-jira` 플래그 추가. Jira MCP가 가용하고 ticket ID가 주어지면 `jira_get_ticket`으로 summary/description/AC를 가져와 `requirements.md` 초안을 자동 작성. `priority` / `labels` 휴리스틱으로 난이도 추론 가능.
+  - **`/specify-with-requirements` 확장** — lite로 시작한 슬러그에서 호출 시 lite→full 승격 흐름 추가 (사용자 확인 → specs.md 생성 → 기존 plans.md를 `Stale (specs added)`로 마킹).
+  - **`/update-requirements` 확장** — `Pipeline:` 헤더를 인식해 lite에서는 specs cascade 단계를 자동 건너뜀.
+  - **`requirements.md` 헤더 확장** — `Difficulty`, `Pipeline`, `Source` 필드 추가.
+  - **`spec-manager` 에이전트 갱신** — lite/full 5단계 오케스트레이터 (Initialize → Specify → Plan → Update → Sync).
 - `sdd-helper` 플러그인 추가 (v1.0.0)
   - 4개 스킬: init-specs, specify-with-requirements, plan-with-specs, update-requirements
   - 1개 에이전트: spec-manager
   - Spec-Driven Development 경량 워크플로우 지원
   - 한국어 README 포함
+- `platform-dev-team-common` Jira MCP 1.1.0 — Markdown 기반 티켓 업데이트 도구 추가
+  - 신규 도구 `jira_update_ticket_from_markdown` — markdown을 ADF로 자동 변환한 뒤 description / custom field에 PUT. 마커 splice 모드로 description의 특정 구간만 갱신 가능.
+  - 신규 모듈 `src/markdown-to-adf.ts` — `marked` 기반 ADF 변환기. heading 1–6, 단락, bold/italic/code/strike 마크, fenced code block (언어 보존), bullet/ordered list, task list (`[ ]`/`[x]` → `TODO`/`DONE`), GFM table, link, blockquote, image fallback 지원. 미지원 마크업은 paragraph fallback + `warnings` 반환.
+  - 단위 테스트 13개 (`node --test`/`tsx --test`) — markdown→ADF 골든 9건 + splice 로직 3건.
+  - 의존성 추가: `marked@^15.0.0`.
 - `platform-dev-team-common` 플러그인에 Jira 연동 기능 추가 (v1.3.0)
   - Jira MCP Server: TypeScript 기반 MCP 서버 (11개 도구)
     - 티켓 CRUD: `jira_get_ticket`, `jira_search_tickets`, `jira_create_ticket`, `jira_update_ticket`
