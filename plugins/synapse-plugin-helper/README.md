@@ -129,6 +129,27 @@ pip install synapse-sdk
 /synapse-plugin-helper:publish
 ```
 
+### /synapse-plugin-helper:add-changelog
+
+Publish 후 GitHub Release body에 이전 버전 대비 변경사항(Changelog)을 자동 생성합니다.
+
+```bash
+# 기본 사용 (config.yaml 자동 감지, 한국어)
+/synapse-plugin-helper:add-changelog
+
+# 영어로 생성
+/synapse-plugin-helper:add-changelog --lang en
+
+# 특정 플러그인/variant 지정
+/synapse-plugin-helper:add-changelog --code sam2-smart-tool --version 2.0.8 --variant lig
+```
+
+**옵션**:
+- `--code`: 플러그인 코드 (기본: config.yaml에서 읽기)
+- `--version`: 대상 버전 (기본: config.yaml에서 읽기)
+- `--variant`: variant 태그 (기본: config.yaml에서 읽기)
+- `--lang`: changelog 언어 ko/en (기본: ko)
+
 ---
 
 ## 스킬
@@ -223,7 +244,8 @@ synapse-plugin-helper/
 │   ├── debug.md
 │   ├── update-config.md
 │   ├── dry-run.md
-│   └── publish.md
+│   ├── publish.md
+│   └── add-changelog.md
 ├── skills/
 │   ├── action-development/
 │   ├── config-yaml-guide/
@@ -268,6 +290,12 @@ Claude에게 물어보세요:
 ```bash
 /synapse-plugin-helper:dry-run
 /synapse-plugin-helper:publish
+```
+
+### 6. Changelog 생성
+
+```bash
+/synapse-plugin-helper:add-changelog
 ```
 
 ---

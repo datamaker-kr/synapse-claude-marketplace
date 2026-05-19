@@ -14,7 +14,7 @@
       "name": "synapse-plugin-helper",
       "source": "./plugins/synapse-plugin-helper",
       "description": "Synapse SDK plugin development toolkit - create, test, debug, and publish Synapse plugins",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Datamaker"
       },
