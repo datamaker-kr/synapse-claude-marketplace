@@ -1,6 +1,6 @@
-# Platform Dev Team Claude Plugin 🛠️
+# Platform Dev Team Common Plugin
 
-플랫폼 개발팀 공식 Claude 플러그인입니다. TDD 가이드, 적극적인 문서 관리, Mermaid 차트 시각화를 통한 자동화된 PR 관리를 제공합니다.
+플랫폼 개발팀 공식 agent 플러그인입니다. TDD 가이드, 적극적인 문서 관리, Mermaid 차트 시각화를 통한 자동화된 PR 관리를 제공합니다.
 
 > **📌 라이선스**: datamaker-kr organization 멤버 전용 - [라이선스 상세 내용](#라이선스)
 
@@ -136,6 +136,21 @@ ln -s $(pwd) ~/.claude/plugins/platform-dev-team
 ```bash
 # Claude Code 플러그인 디렉토리로 복사
 cp -r . ~/.claude/plugins/platform-dev-team
+```
+
+### Codex 설치
+
+```bash
+codex plugin marketplace add .
+codex plugin install platform-dev-team-common@synapse-marketplace
+```
+
+Codex에서는 기존 slash command가 `skills/*-command/SKILL.md`로 제공됩니다.
+
+### OpenCode 사용
+
+```bash
+cp -R dist/opencode/platform-dev-team-common/.opencode ./
 ```
 
 #### 3단계: Claude Code 재시작

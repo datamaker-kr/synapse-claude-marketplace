@@ -1,0 +1,37 @@
+{
+  "name": "synapse-plugin-helper",
+  "version": "1.0.1",
+  "description": "Synapse SDK plugin development toolkit for Claude Code - create, test, debug, and publish Synapse plugins",
+  "author": {
+    "name": "Datamaker",
+    "email": "dev@datamaker.kr"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "MIT",
+  "keywords": [
+    "synapse",
+    "plugin",
+    "sdk",
+    "ml",
+    "pipeline",
+    "development"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Synapse Plugin Helper",
+    "shortDescription": "Create, test, debug, and publish Synapse SDK plugins.",
+    "longDescription": "Synapse Plugin Helper provides workflows for creating Synapse SDK plugins, editing config.yaml, testing actions, debugging runtime failures, and publishing plugin releases.",
+    "developerName": "Datamaker",
+    "category": "Development",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+    "defaultPrompt": [
+      "Help me create, validate, test, or publish a Synapse SDK plugin."
+    ],
+    "screenshots": []
+  }
+}

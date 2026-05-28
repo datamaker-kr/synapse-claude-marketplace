@@ -59,6 +59,8 @@ temp/
 
 # Spec Files
 specs/*
+!specs/codex-opencode-marketplace-support/
+!specs/codex-opencode-marketplace-support/plan.md
 
 # Oh My Claude Code
 .omc

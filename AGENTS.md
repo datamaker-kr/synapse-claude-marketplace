@@ -1,10 +1,16 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
+- `.agent-marketplace.yaml` is the source of truth for marketplace-level ordering and metadata across agents.
 - `.claude-plugin/plugin.json` defines plugin metadata used by Claude Code.
+- `.agents/plugins/marketplace.json` is the generated Codex marketplace index.
 - `commands/` contains slash-command specs (`*.md`) with YAML frontmatter and step-by-step workflows.
 - `skills/` holds skill modules; each `skills/<skill>/SKILL.md` may link to `skills/<skill>/references/`.
 - `agents/` provides autonomous agent playbooks invoked by the plugin.
+- `plugins/<name>/agent-plugin.yaml` is the per-plugin source of truth; generated platform manifests must not be edited directly.
+- `plugins/<name>/.codex-plugin/plugin.json` is generated for Codex installation.
+- `dist/opencode/<name>/.opencode/` contains generated OpenCode adapter files.
+- `tools/` contains marketplace generation and validation scripts.
 - `docs/claude-code-docs/` stores supporting documentation used for onboarding and reference.
 
 ## Build, Test, and Development Commands
@@ -15,6 +21,9 @@
 - `/synapse-plugin:update-config` syncs action metadata into config.yaml.
 - `/synapse-plugin:dry-run` validates `config.yaml`, entrypoints, and dependencies before publish.
 - `/synapse-plugin:publish` publishes the plugin (requires `synapse login`).
+- `python3 tools/generate-agent-marketplaces.py` regenerates Claude/Codex/OpenCode artifacts from `agent-plugin.yaml`.
+- `python3 tools/generate-agent-marketplaces.py --check` verifies generated artifacts are up to date.
+- `python3 tools/validate-agent-marketplaces.py` validates common manifests, generated artifacts, and declared file paths.
 - Install prerequisites as needed: `uv pip install synapse-sdk` (or `pip install synapse-sdk`).
 
 ## Coding Style & Naming Conventions
@@ -26,6 +35,8 @@
 ## Testing Guidelines
 - There is no automated test suite in this repo.
 - Validate changes by running the relevant slash command in Claude Code and verifying outputs.
+- For marketplace metadata or generated artifact changes, run `python3 tools/validate-agent-marketplaces.py`.
+- If generated files changed, run `python3 tools/generate-agent-marketplaces.py --check`.
 - For release readiness, run `/synapse-plugin:dry-run` and at least one `/synapse-plugin:test`.
 
 ## Commit & Pull Request Guidelines
@@ -39,6 +50,7 @@
 - 새 플러그인 추가 시 루트 `README.md`의 "사용 가능한 플러그인" 테이블에 반드시 등록해야 합니다.
 - 문서는 한글로 작성합니다 (코드 예시, 명령어, 변수명 제외).
 - `plugin.json`의 `commands`, `skills`, `agents` 목록은 실제 파일과 일치해야 합니다.
+- Codex/OpenCode 지원 정보 변경 시 `agent-plugin.yaml`을 수정하고 generator를 실행합니다.
 - 기여 가이드: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)를 참조하세요.
 
 ## Plugin Version Management
@@ -50,14 +62,18 @@ Claude Code의 플러그인 업데이트 트리거는 다음 우선순위로 결
 3. git commit SHA (1·2번 모두 없을 때 fallback)
 
 > ⚠️ `plugin.json`에 `version`이 명시돼 있으면 **반드시 매 변경마다 bump**해야 사용자에게 업데이트가 적용됩니다. 커밋만 푸시하는 것으로는 업데이트되지 않습니다 (캐시된 동일 버전 유지).
+>
+> 현재 저장소에서는 `plugins/<plugin>/agent-plugin.yaml`이 version source of truth입니다. `plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`은 generator로 동기화합니다.
 
 ### 각 위치 의미와 갱신 규칙
 
 | 위치 | 역할 | 신규 플러그인 추가 | 기존 플러그인 코드 변경 |
 |------|------|-------------------|-------------------------|
-| `plugins/<plugin>/plugin.json` `version` | **플러그인 자체 버전 (update trigger 1순위)** | ✅ 필수 (예: `1.0.0`) | ✅ **필수 bump** |
-| `.claude-plugin/marketplace.json` `plugins[].version` | 마켓플레이스 엔트리의 fallback 버전 | ✅ 위와 동일 값으로 등록 | ⚠️ 권장 (위와 동기화) |
-| `.claude-plugin/marketplace.json` `metadata.version` | **마켓플레이스 카탈로그 자체** 버전 (플러그인 업데이트와 무관) | ✅ minor bump (카탈로그 변경) | ❌ 불필요 |
+| `plugins/<plugin>/agent-plugin.yaml` `version` | **플러그인 자체 버전의 원본** | ✅ 필수 (예: `1.0.0`) | ✅ **필수 bump** |
+| `plugins/<plugin>/plugin.json` `version` | Claude Code update trigger 1순위 생성물 | ✅ generator로 생성 | ✅ generator로 동기화 |
+| `.claude-plugin/marketplace.json` `plugins[].version` | 마켓플레이스 엔트리의 fallback 버전 생성물 | ✅ generator로 생성 | ✅ generator로 동기화 |
+| `.claude-plugin/marketplace.json` `metadata.version` | **마켓플레이스 카탈로그 자체** 버전 | ✅ minor bump (카탈로그 변경) | ❌ 불필요 |
+| `.agents/plugins/marketplace.json` | Codex marketplace 인덱스 생성물 | ✅ generator로 생성 | ✅ generator로 동기화 |
 | `.claude-plugin/plugin.json` `version` | 마켓플레이스 자체의 plugin.json (Claude Code update detection 비사용) | ❌ 불필요 | ❌ 불필요 |
 
 ### SemVer 가이드
@@ -69,14 +85,17 @@ Claude Code의 플러그인 업데이트 트리거는 다음 우선순위로 결
 ### 체크리스트 (변경 종류별)
 
 **신규 플러그인 추가 시**
-- [ ] `plugins/<plugin>/plugin.json`에 `"version": "1.0.0"` 명시
-- [ ] `.claude-plugin/marketplace.json`의 `plugins[]`에 동일 `version` 등록
-- [ ] `.claude-plugin/marketplace.json`의 `metadata.version` minor bump
+- [ ] `plugins/<plugin>/agent-plugin.yaml`에 `version: 1.0.0` 명시
+- [ ] `.agent-marketplace.yaml`의 `plugins[]`에 등록
+- [ ] `.agent-marketplace.yaml`의 `metadata.version` minor bump
+- [ ] `python3 tools/generate-agent-marketplaces.py` 실행
+- [ ] `python3 tools/validate-agent-marketplaces.py` 실행
 - [ ] 루트 `README.md`·`CHANGELOG.md`에 등록
 
 **기존 플러그인 코드/문서 변경 시**
-- [ ] **`plugins/<plugin>/plugin.json`의 `version` bump** (필수)
-- [ ] `.claude-plugin/marketplace.json`의 해당 `plugins[].version` 동기화 (권장)
+- [ ] **`plugins/<plugin>/agent-plugin.yaml`의 `version` bump** (필수)
+- [ ] `python3 tools/generate-agent-marketplaces.py` 실행
+- [ ] `python3 tools/validate-agent-marketplaces.py` 실행
 - [ ] `CHANGELOG.md` Unreleased 항목 추가
 - [ ] `metadata.version` 및 `.claude-plugin/plugin.json`은 손대지 않음
 

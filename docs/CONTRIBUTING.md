@@ -4,7 +4,7 @@ Synapse Plugin Marketplace에 기여해 주셔서 감사합니다. 이 문서는
 
 ## 기여 개요
 
-이 마켓플레이스는 Synapse 제품군 개발을 위한 Claude Code 플러그인의 중앙 등록소입니다. 버그 수정, 기능 개선, 새 플러그인 추가 등 모든 형태의 기여를 환영합니다.
+이 마켓플레이스는 Synapse 제품군 개발을 위한 agent plugin 중앙 등록소입니다. Claude Code를 기본 지원하고, Codex와 OpenCode adapter 산출물을 함께 제공합니다.
 
 ---
 
@@ -33,6 +33,7 @@ Synapse Plugin Marketplace에 기여해 주셔서 감사합니다. 이 문서는
    - 관련 이슈 링크 (있는 경우)
    - 실행한 명령어/테스트
 4. 커맨드 동작을 변경한 경우, 해당 플러그인의 `README.md`와 `commands/` 파일도 함께 업데이트합니다.
+5. `agent-plugin.yaml` 또는 generated artifact에 영향이 있으면 `python3 tools/generate-agent-marketplaces.py`와 `python3 tools/validate-agent-marketplaces.py`를 실행합니다.
 
 ### 코드 스타일
 
@@ -52,7 +53,10 @@ Synapse Plugin Marketplace에 기여해 주셔서 감사합니다. 이 문서는
 
 ```
 plugins/<plugin-name>/
-├── plugin.json              # 플러그인 메타데이터 (필수)
+├── agent-plugin.yaml        # 공통 원본 메타데이터 (필수)
+├── plugin.json              # Claude Code 생성 메타데이터
+├── .codex-plugin/
+│   └── plugin.json          # Codex 생성 메타데이터
 ├── README.md                # 플러그인 사용 설명서 (필수)
 ├── commands/                # 슬래시 명령어 (선택)
 │   ├── help.md
@@ -64,33 +68,60 @@ plugins/<plugin-name>/
     └── <agent-name>.md
 ```
 
-### plugin.json 작성
+### agent-plugin.yaml 작성
 
-```json
-{
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "플러그인에 대한 한 줄 설명",
-  "author": {
-    "name": "datamaker-kr Organization"
-  },
-  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
-  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
-  "license": "SEE LICENSE IN LICENSE",
-  "keywords": ["관련", "키워드"],
-  "commands": [
-    "./commands/help.md"
-  ],
-  "skills": [
-    "./skills/my-skill/SKILL.md"
-  ],
-  "agents": [
-    "./agents/my-agent.md"
-  ]
-}
+```yaml
+name: my-plugin
+version: 1.0.0
+description: 플러그인에 대한 한 줄 설명
+author:
+  name: datamaker-kr Organization
+homepage: https://github.com/datamaker-kr/synapse-claude-marketplace
+repository: https://github.com/datamaker-kr/synapse-claude-marketplace.git
+license: SEE LICENSE IN LICENSE
+keywords:
+  - synapse
+  - example
+category: development
+tags:
+  - example
+interface:
+  display_name: My Plugin
+  short_description: 한 줄 UI 설명
+  long_description: Codex와 marketplace UI에 표시할 상세 설명
+  capabilities:
+    - Interactive
+    - Write
+  default_prompt: Help me use My Plugin.
+targets:
+  codex:
+    category: Development
+  opencode:
+    category: development
+commands:
+  - ./commands/help.md
+skills:
+  - ./skills/my-skill/SKILL.md
+agents:
+  - ./agents/my-agent.md
 ```
 
-**주의**: `commands`, `skills`, `agents` 목록은 실제 파일 경로와 정확히 일치해야 합니다.
+**주의**: `commands`, `skills`, `agents` 목록은 실제 파일 경로와 정확히 일치해야 합니다. `plugin.json`, `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, `dist/opencode/**`는 직접 수정하지 말고 generator로 갱신합니다.
+
+### 생성 산출물 갱신
+
+`agent-plugin.yaml` 또는 command/skill/agent 목록을 바꾼 후 다음을 실행합니다:
+
+```bash
+python3 tools/generate-agent-marketplaces.py
+python3 tools/validate-agent-marketplaces.py
+```
+
+CI나 리뷰 전에는 다음 명령으로 generated artifact drift를 확인합니다:
+
+```bash
+python3 tools/generate-agent-marketplaces.py --check
+```
 
 ### 커맨드 파일 규칙
 
@@ -168,11 +199,14 @@ allowed-tools: ["Read", "Bash", "Glob", "Grep", "AskUserQuestion"]
 PR 제출 시 다음 사항을 확인합니다:
 
 - [ ] `plugin.json`의 파일 목록이 실제 파일과 일치하는가
+- [ ] `agent-plugin.yaml`의 파일 목록이 실제 파일과 일치하는가
+- [ ] 생성 산출물을 직접 수정하지 않고 generator로 갱신했는가
 - [ ] README.md 필수 섹션이 모두 포함되어 있는가
 - [ ] 루트 README.md가 업데이트되었는가 (새 플러그인의 경우)
 - [ ] 한글 문서 규칙을 따르는가
 - [ ] 민감 정보(토큰, 비밀번호)가 포함되지 않았는가
 - [ ] 기존 플러그인의 동작이 변경된 경우 해당 문서가 업데이트되었는가
+- [ ] `python3 tools/validate-agent-marketplaces.py`가 통과하는가
 
 ---
 
@@ -190,6 +224,8 @@ claude --plugin-dir .
 ```
 
 자동화된 테스트 스위트는 없으므로, 관련 슬래시 명령어를 직접 실행하여 출력을 검증합니다.
+
+Codex marketplace 산출물은 `.agents/plugins/marketplace.json`에 생성됩니다. OpenCode adapter는 `dist/opencode/<plugin>/.opencode/` 아래에 생성됩니다.
 
 ---
 

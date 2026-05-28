@@ -20,6 +20,18 @@ Claude Code용 명세 기반 개발(Specification-Driven Development) 플러그�
 /speckit-helper:implement user-authentication
 ```
 
+## Codex 및 OpenCode
+
+```bash
+codex plugin marketplace add .
+codex plugin install speckit-helper@synapse-marketplace
+
+# OpenCode adapter
+cp -R dist/opencode/speckit-helper/.opencode ./
+```
+
+Codex에서는 기존 slash command가 `skills/*-command/SKILL.md`로 제공됩니다.
+
 ## 워크플로우
 
 Speckit Helper는 구조화된 명세 기반 개발(SDD) 파이프라인을 따릅니다:

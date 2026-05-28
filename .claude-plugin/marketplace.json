@@ -5,8 +5,8 @@
     "email": "developer@datamaker.io"
   },
   "metadata": {
-    "description": "Official Claude Code plugin marketplace for Synapse Products development",
-    "version": "1.5.0",
+    "description": "Official multi-agent plugin marketplace for Synapse Products development",
+    "version": "1.6.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -14,106 +14,205 @@
       "name": "synapse-plugin-helper",
       "source": "./plugins/synapse-plugin-helper",
       "description": "Synapse SDK plugin development toolkit - create, test, debug, and publish Synapse plugins",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
-        "name": "Datamaker"
+        "name": "Datamaker",
+        "email": "dev@datamaker.kr"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "MIT",
-      "keywords": ["synapse", "plugin", "sdk", "ml", "pipeline"],
+      "keywords": [
+        "synapse",
+        "plugin",
+        "sdk",
+        "ml",
+        "pipeline",
+        "development"
+      ],
       "category": "development",
-      "tags": ["synapse-sdk", "ml-pipeline", "plugin-development"]
+      "tags": [
+        "synapse-sdk",
+        "ml-pipeline",
+        "plugin-development"
+      ]
     },
     {
       "name": "speckit-helper",
       "source": "./plugins/speckit-helper",
       "description": "Specification-Driven Development plugin - transform feature ideas into structured specs, task lists, and implementations",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "datamaker-kr Organization"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "SEE LICENSE IN LICENSE",
-      "keywords": ["specification", "planning", "workflow", "task-management", "sdd"],
+      "keywords": [
+        "specification",
+        "planning",
+        "workflow",
+        "task-management",
+        "spec-driven-development",
+        "requirements"
+      ],
       "category": "development",
-      "tags": ["specification", "planning", "workflow", "task-management"]
+      "tags": [
+        "specification",
+        "planning",
+        "workflow",
+        "task-management"
+      ]
     },
     {
       "name": "platform-dev-team-common",
       "source": "./plugins/platform-dev-team-common",
       "description": "Common development team plugin - TDD guidance, documentation management, and PR automation with Mermaid charts",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "author": {
         "name": "datamaker-kr Organization"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "SEE LICENSE IN LICENSE",
-      "keywords": ["tdd", "documentation", "pr-management", "mermaid"],
+      "keywords": [
+        "tdd",
+        "documentation",
+        "pr-management",
+        "mermaid",
+        "dev-team",
+        "django",
+        "backend",
+        "jira"
+      ],
       "category": "development",
-      "tags": ["backend", "django", "drf", "tdd", "documentation", "mermaid", "pr-automation"]
+      "tags": [
+        "backend",
+        "django",
+        "drf",
+        "tdd",
+        "documentation",
+        "mermaid",
+        "pr-automation"
+      ]
     },
     {
       "name": "synapse-upload",
       "source": "./plugins/synapse-upload",
-      "description": "AI-powered data upload for Synapse — map files to data collection specs and upload via CLI",
-      "version": "1.0.0",
+      "description": "AI-powered data upload for Synapse - map files to data collection specs and upload via CLI",
+      "version": "1.0.1",
       "author": {
         "name": "datamaker-kr Organization"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "SEE LICENSE IN LICENSE",
-      "keywords": ["synapse", "upload", "data-collection", "dataset"],
+      "keywords": [
+        "synapse",
+        "upload",
+        "data",
+        "dataset",
+        "data-collection"
+      ],
       "category": "data-management",
-      "tags": ["synapse", "upload", "data-collection", "dataset"]
+      "tags": [
+        "synapse",
+        "upload",
+        "data-collection",
+        "dataset"
+      ]
     },
     {
       "name": "synapse-export",
       "source": "./plugins/synapse-export",
-      "description": "AI-powered annotation export for Synapse — export assignments, ground truth, and tasks in COCO, YOLO, VOC, JSON formats",
-      "version": "1.0.0",
+      "description": "AI-powered annotation export for Synapse - export assignments, ground truth, and tasks in COCO, YOLO, VOC, JSON formats",
+      "version": "1.0.1",
       "author": {
         "name": "datamaker-kr Organization"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "SEE LICENSE IN LICENSE",
-      "keywords": ["synapse", "export", "coco", "yolo", "annotations", "dataset"],
+      "keywords": [
+        "synapse",
+        "export",
+        "annotation",
+        "ground-truth",
+        "coco",
+        "yolo",
+        "dataset"
+      ],
       "category": "data-management",
-      "tags": ["synapse", "export", "coco", "yolo", "annotations", "dataset", "ground-truth"]
+      "tags": [
+        "synapse",
+        "export",
+        "coco",
+        "yolo",
+        "annotations",
+        "dataset",
+        "ground-truth"
+      ]
     },
     {
       "name": "sdd-helper",
       "source": "./plugins/sdd-helper",
       "description": "Spec-Driven Development를 쉽게 도입할 수 있도록 도와주는 경량 SDD 워크플로우 플러그인. 난이도 기반 lite/full 파이프라인 분기와 Jira MCP 연동(requirements 자동 채움, specs/plans push-back)을 지원합니다.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Datamaker"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "SEE LICENSE IN LICENSE",
-      "keywords": ["sdd", "spec-driven-development", "requirements", "specification", "planning", "jira", "adf"],
+      "keywords": [
+        "sdd",
+        "spec-driven-development",
+        "requirements",
+        "specification",
+        "planning",
+        "workflow",
+        "jira",
+        "adf"
+      ],
       "category": "development",
-      "tags": ["sdd", "requirements", "specification", "planning", "workflow", "jira", "adf"]
+      "tags": [
+        "sdd",
+        "requirements",
+        "specification",
+        "planning",
+        "workflow",
+        "jira",
+        "adf"
+      ]
     },
     {
       "name": "synapse-applications",
       "source": "./plugins/synapse-applications",
       "description": "Build and publish Synapse Apps as OCI images so the Synapse Workspace can install them via the App Store. Supports React, Vue, Next.js, Nuxt 3, Gradio, Streamlit, Static HTML, Django, FastAPI.",
-      "version": "0.3.0",
+      "version": "0.3.4",
       "author": {
-        "name": "Datamaker"
+        "name": "Datamaker",
+        "email": "dev@datamaker.kr"
       },
       "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
       "license": "MIT",
-      "keywords": ["synapse", "synapse-app", "synapse-workspace", "iframe", "registry", "oci"],
+      "keywords": [
+        "synapse",
+        "synapse-app",
+        "synapse-workspace",
+        "iframe",
+        "registry",
+        "oci"
+      ],
       "category": "development",
-      "tags": ["synapse", "synapse-app", "iframe", "oci", "app-store"]
+      "tags": [
+        "synapse",
+        "synapse-app",
+        "iframe",
+        "oci",
+        "app-store"
+      ]
     }
   ]
 }

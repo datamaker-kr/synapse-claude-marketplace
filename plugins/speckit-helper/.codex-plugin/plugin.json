@@ -1,0 +1,36 @@
+{
+  "name": "speckit-helper",
+  "version": "1.0.1",
+  "description": "A structured workflow for turning natural language requirements into specifications, plans, tasks, and implementations. Works with any project type.",
+  "author": {
+    "name": "datamaker-kr Organization"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace.git",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": [
+    "specification",
+    "planning",
+    "workflow",
+    "task-management",
+    "spec-driven-development",
+    "requirements"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Speckit Helper",
+    "shortDescription": "Turn feature ideas into specs, plans, tasks, and checks.",
+    "longDescription": "Speckit Helper guides specification-driven development with commands and skills for writing specs, clarifying requirements, planning implementation, decomposing tasks, and checking consistency.",
+    "developerName": "datamaker-kr Organization",
+    "category": "Development",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+    "defaultPrompt": [
+      "Help me turn a feature idea into a specification, plan, task list, or quality checklist."
+    ],
+    "screenshots": []
+  }
+}
