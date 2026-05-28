@@ -1,6 +1,6 @@
 {
   "name": "speckit-helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A structured workflow for turning natural language requirements into specifications, plans, tasks, and implementations. Works with any project type.",
   "author": {
     "name": "datamaker-kr Organization"

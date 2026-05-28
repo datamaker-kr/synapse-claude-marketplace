@@ -36,6 +36,16 @@ Claude Code용 경량 Spec-Driven Development(SDD) 워크플로우 플러그인�
 /plan-with-specs 사용자-인증-기능
 ```
 
+## Codex 및 OpenCode
+
+```bash
+codex plugin marketplace add .
+codex plugin install sdd-helper@synapse-marketplace
+
+# OpenCode adapter
+cp -R dist/opencode/sdd-helper/.opencode ./
+```
+
 ## 워크플로우 다이어그램
 
 난이도에 따라 두 가지 파이프라인으로 분기합니다.

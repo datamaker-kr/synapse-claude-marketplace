@@ -1,0 +1,55 @@
+name: speckit-helper
+version: 1.0.1
+description: A structured workflow for turning natural language requirements into specifications, plans, tasks, and implementations. Works with any project type.
+marketplace_description: Specification-Driven Development plugin - transform feature ideas into structured specs, task lists, and implementations
+author:
+  name: datamaker-kr Organization
+homepage: https://github.com/datamaker-kr/synapse-claude-marketplace
+repository: https://github.com/datamaker-kr/synapse-claude-marketplace.git
+license: SEE LICENSE IN LICENSE
+keywords:
+  - specification
+  - planning
+  - workflow
+  - task-management
+  - spec-driven-development
+  - requirements
+category: development
+tags:
+  - specification
+  - planning
+  - workflow
+  - task-management
+interface:
+  display_name: Speckit Helper
+  short_description: Turn feature ideas into specs, plans, tasks, and checks.
+  long_description: Speckit Helper guides specification-driven development with commands and skills for writing specs, clarifying requirements, planning implementation, decomposing tasks, and checking consistency.
+  capabilities:
+    - Interactive
+    - Write
+  default_prompt: Help me turn a feature idea into a specification, plan, task list, or quality checklist.
+targets:
+  codex:
+    category: Development
+  opencode:
+    category: development
+commands:
+  - ./commands/help.md
+  - ./commands/specify.md
+  - ./commands/clarify.md
+  - ./commands/refine.md
+  - ./commands/plan.md
+  - ./commands/tasks.md
+  - ./commands/implement.md
+  - ./commands/analyze.md
+  - ./commands/checklist.md
+  - ./commands/constitution.md
+  - ./commands/tasks-to-issues.md
+skills:
+  - ./skills/spec-authoring/SKILL.md
+  - ./skills/task-decomposition/SKILL.md
+  - ./skills/consistency-analysis/SKILL.md
+  - ./skills/checklist-generation/SKILL.md
+agents:
+  - ./agents/spec-workflow/SKILL.md
+  - ./agents/quality-gate/SKILL.md

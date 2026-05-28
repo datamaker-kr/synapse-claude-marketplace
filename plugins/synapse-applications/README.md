@@ -4,6 +4,20 @@ Scaffold and publish a Synapse App as an OCI image so the Synapse Workspace can 
 
 A Synapse App is a containerized HTTP app the host loads in an iframe. The platform discovers it by **pulling an OCI image** whose config carries a `io.synapse.app.manifest` label - the full `synapse-app.yaml` encoded as base64 YAML. There is no `sub-apps/` directory, no compose-file rewrite. Apps live in the registry; the workspace pulls and runs them.
 
+## Installation
+
+```bash
+# Claude Code
+/plugin install synapse-applications@synapse-marketplace
+
+# Codex
+codex plugin marketplace add .
+codex plugin install synapse-applications@synapse-marketplace
+
+# OpenCode adapter
+cp -R dist/opencode/synapse-applications/.opencode ./
+```
+
 ## What it does
 
 When the user asks Claude Code to "scaffold a new Synapse App" / "create a sub-app" / "build a plugin for the workspace", this skill:

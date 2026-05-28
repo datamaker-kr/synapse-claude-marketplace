@@ -1,0 +1,38 @@
+{
+  "name": "sdd-helper",
+  "version": "1.1.1",
+  "description": "Spec-Driven Development를 쉽게 도입할 수 있도록 도와주는 경량 SDD 워크플로우 플러그인. 난이도 기반 lite/full 파이프라인 분기와 Jira MCP 연동(자동 requirements 채움, specs/plans push-back)을 지원합니다.",
+  "author": {
+    "name": "Datamaker"
+  },
+  "homepage": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "repository": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": [
+    "sdd",
+    "spec-driven-development",
+    "requirements",
+    "specification",
+    "planning",
+    "workflow",
+    "jira",
+    "adf"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "SDD Helper",
+    "shortDescription": "Lightweight spec-driven development with lite/full planning flows.",
+    "longDescription": "SDD Helper provides a lightweight requirements, specs, plans, update, and Jira sync workflow with difficulty-based lite/full pipeline selection.",
+    "developerName": "Datamaker",
+    "category": "Development",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/datamaker-kr/synapse-claude-marketplace",
+    "defaultPrompt": [
+      "Help me initialize, update, plan, or sync an SDD workflow."
+    ],
+    "screenshots": []
+  }
+}

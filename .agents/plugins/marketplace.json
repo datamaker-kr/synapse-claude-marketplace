@@ -1,0 +1,92 @@
+{
+  "name": "synapse-marketplace",
+  "interface": {
+    "displayName": "Synapse Agent Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "synapse-plugin-helper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/synapse-plugin-helper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    },
+    {
+      "name": "speckit-helper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/speckit-helper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    },
+    {
+      "name": "platform-dev-team-common",
+      "source": {
+        "source": "local",
+        "path": "./plugins/platform-dev-team-common"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    },
+    {
+      "name": "synapse-upload",
+      "source": {
+        "source": "local",
+        "path": "./plugins/synapse-upload"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Data Management"
+    },
+    {
+      "name": "synapse-export",
+      "source": {
+        "source": "local",
+        "path": "./plugins/synapse-export"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Data Management"
+    },
+    {
+      "name": "sdd-helper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sdd-helper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    },
+    {
+      "name": "synapse-applications",
+      "source": {
+        "source": "local",
+        "path": "./plugins/synapse-applications"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    }
+  ]
+}

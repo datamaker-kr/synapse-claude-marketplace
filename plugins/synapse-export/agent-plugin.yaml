@@ -1,0 +1,47 @@
+name: synapse-export
+version: 1.0.1
+description: AI-powered data export from Synapse - export annotations, ground truth, and tasks in any format
+marketplace_description: AI-powered annotation export for Synapse - export assignments, ground truth, and tasks in COCO, YOLO, VOC, JSON formats
+author:
+  name: datamaker-kr Organization
+homepage: https://github.com/datamaker-kr/synapse-claude-marketplace
+repository: https://github.com/datamaker-kr/synapse-claude-marketplace.git
+license: SEE LICENSE IN LICENSE
+keywords:
+  - synapse
+  - export
+  - annotation
+  - ground-truth
+  - coco
+  - yolo
+  - dataset
+category: data-management
+tags:
+  - synapse
+  - export
+  - coco
+  - yolo
+  - annotations
+  - dataset
+  - ground-truth
+interface:
+  display_name: Synapse Export
+  short_description: Export Synapse assignments, ground truth, tasks, and annotations.
+  long_description: Synapse Export guides exporting Synapse annotation data, assignments, ground truth, and tasks into formats such as JSON, COCO, YOLO, Pascal VOC, and CSV.
+  capabilities:
+    - Interactive
+    - Write
+  default_prompt: Help me export Synapse annotation data, ground truth, or tasks.
+targets:
+  codex:
+    category: Data Management
+  opencode:
+    category: data-management
+commands:
+  - ./commands/help.md
+  - ./commands/export.md
+  - ./commands/export-status.md
+skills:
+  - ./skills/export-workflow/SKILL.md
+agents:
+  - ./agents/export-assistant.md

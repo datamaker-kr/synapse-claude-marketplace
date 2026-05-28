@@ -1,10 +1,10 @@
-# Synapse Plugin Marketplace
+# Synapse Agent Plugin Marketplace
 
-Synapse 제품군 개발을 위한 공식 Claude Code 플러그인 마켓플레이스입니다.
+Synapse 제품군 개발을 위한 공식 agent plugin marketplace입니다.
 
 ## 개요
 
-이 마켓플레이스는 Synapse 제품군 개발에 필요한 Claude Code 플러그인의 중앙 등록소입니다.
+이 저장소는 Claude Code 플러그인을 기준으로 시작했지만, 이제 공통 manifest에서 Claude Code, Codex, OpenCode용 산출물을 함께 생성합니다.
 
 ### 지원 제품
 
@@ -16,19 +16,21 @@ Synapse 제품군 개발을 위한 공식 Claude Code 플러그인 마켓플레�
 
 ## 빠른 시작
 
-### 1. 마켓플레이스 추가
+### Claude Code
+
+#### 1. 마켓플레이스 추가
 
 ```bash
 /plugin marketplace add datamaker-kr/synapse-claude-marketplace
 ```
 
-### 2. 사용 가능한 플러그인 탐색
+#### 2. 사용 가능한 플러그인 탐색
 
 ```bash
 /plugin > Discover
 ```
 
-### 3. 플러그인 설치
+#### 3. 플러그인 설치
 
 ```bash
 # Synapse SDK 플러그인 개발 도구
@@ -48,18 +50,45 @@ Synapse 제품군 개발을 위한 공식 Claude Code 플러그인 마켓플레�
 
 # 명세 기반 개발 (SDD) — 경량 워크플로우
 /plugin install sdd-helper@synapse-marketplace
+
+# Synapse App 개발
+/plugin install synapse-applications@synapse-marketplace
 ```
+
+### Codex
+
+Codex는 repo-local marketplace 파일을 사용합니다.
+
+```bash
+codex plugin marketplace add .
+codex plugin install synapse-plugin-helper@synapse-marketplace
+codex plugin install synapse-upload@synapse-marketplace
+```
+
+각 플러그인에는 `plugins/<plugin>/.codex-plugin/plugin.json`이 포함되어 있고, Claude slash command는 `skills/*-command/SKILL.md` 형태의 Codex skill로 제공됩니다.
+
+### OpenCode
+
+OpenCode adapter는 `dist/opencode/<plugin>/.opencode/` 아래에 생성됩니다.
+
+```bash
+# 예: synapse-upload adapter를 프로젝트에 복사
+cp -R dist/opencode/synapse-upload/.opencode ./
+```
+
+OpenCode native marketplace 배포는 아직 범위 밖이며, 현재는 `.opencode/commands`, `.opencode/skills`, `.opencode/agent` 산출물을 제공합니다.
 
 ## 사용 가능한 플러그인
 
 | 플러그인 | 설명 | 버전 | 카테고리 |
 |---------|------|------|----------|
-| [synapse-plugin-helper](#synapse-plugin-helper) | Synapse SDK 플러그인 개발 도구 | 1.0.0 | development |
-| [platform-dev-team-common](#platform-dev-team-common) | TDD, 문서 관리, PR 자동화 | 1.0.0 | development |
-| [synapse-export](#synapse-export) | AI 기반 Synapse 어노테이션 내보내기 | 1.0.0 | data |
-| [synapse-upload](#synapse-upload) | AI 기반 Synapse 데이터 업로드 | 1.0.0 | data |
-| [speckit-helper](#speckit-helper) | 명세 기반 개발(SDD) 플러그인 | 1.0.0 | workflow |
-| [sdd-helper](#sdd-helper) | SDD 경량 워크플로우 플러그인 | 1.0.0 | workflow |
+| [synapse-plugin-helper](#synapse-plugin-helper) | Synapse SDK 플러그인 개발 도구 | 1.0.1 | development |
+| [platform-dev-team-common](#platform-dev-team-common) | TDD, 문서 관리, PR 자동화 | 1.3.2 | development |
+| [synapse-export](#synapse-export) | AI 기반 Synapse 어노테이션 내보내기 | 1.0.1 | data-management |
+| [synapse-upload](#synapse-upload) | AI 기반 Synapse 데이터 업로드 | 1.0.1 | data-management |
+| [speckit-helper](#speckit-helper) | 명세 기반 개발(SDD) 플러그인 | 1.0.1 | development |
+| [sdd-helper](#sdd-helper) | SDD 경량 워크플로우 플러그인 | 1.1.1 | development |
+| [synapse-applications](#synapse-applications) | Synapse App 빌드 및 OCI 배포 | 0.3.4 | development |
 
 ---
 
@@ -67,7 +96,7 @@ Synapse 제품군 개발을 위한 공식 Claude Code 플러그인 마켓플레�
 
 Synapse SDK 플러그인 개발을 위한 Claude Code 도구입니다.
 
-### 명령어 (9개)
+### 명령어 (10개)
 
 | 명령어 | 설명 |
 |--------|------|
@@ -80,6 +109,7 @@ Synapse SDK 플러그인 개발을 위한 Claude Code 도구입니다.
 | `/synapse-plugin-helper:update-config` | 코드 기반 메타데이터를 config.yaml에 동기화 |
 | `/synapse-plugin-helper:dry-run` | 배포 전 검증 |
 | `/synapse-plugin-helper:publish` | 플러그인 배포 |
+| `/synapse-plugin-helper:migrate-plugin-to-server` | 서버 간 플러그인 마이그레이션 |
 
 ### 스킬 (7개)
 
@@ -106,7 +136,7 @@ Synapse SDK 플러그인 개발을 위한 Claude Code 도구입니다.
 
 개발팀 공통 도구로 TDD, 문서 관리, PR 자동화를 지원합니다.
 
-### 명령어 (4개)
+### 명령어 (5개)
 
 | 명령어 | 설명 |
 |--------|------|
@@ -114,8 +144,9 @@ Synapse SDK 플러그인 개발을 위한 Claude Code 도구입니다.
 | `/platform-dev-team-common:update-pr-desc` | PR 설명 및 Mermaid 다이어그램 자동 생성 |
 | `/platform-dev-team-common:update-docs` | 문서 업데이트 분석 및 제안 |
 | `/platform-dev-team-common:add-changelog` | CHANGELOG 항목 추가 |
+| `/platform-dev-team-common:sync-jira-tickets` | Git 브랜치/CHANGELOG 기반 Jira 티켓 동기화 |
 
-### 스킬 (6개)
+### 스킬 (7개)
 
 | 스킬 | 설명 |
 |------|------|
@@ -125,6 +156,7 @@ Synapse SDK 플러그인 개발을 위한 Claude Code 도구입니다.
 | **mermaid-expert** | Light/Dark 모드 호환 Mermaid 다이어그램 생성 |
 | **commit-with-message** | 한국어/영어 이중 언어 커밋 메시지 규칙 |
 | **changelog-manager** | Keep a Changelog 형식의 변경 로그 관리 |
+| **jira-sync** | Jira 티켓 조회, 업데이트, 상태 전이 가이드 |
 
 ### 에이전트 (3개)
 
@@ -229,22 +261,36 @@ Synapse 프로젝트에서 어노테이션, 그라운드 트루스, 태스크 �
 
 ## sdd-helper
 
-SDD(Spec-Driven Development) 경량 워크플로우 플러그인입니다. 요구사항 → 명세 → 계획의 전체 라이프사이클을 4개의 스킬로 관리합니다.
+SDD(Spec-Driven Development) 경량 워크플로우 플러그인입니다. 요구사항 → 명세 → 계획 → Jira 동기화의 라이프사이클을 6개의 스킬로 관리합니다.
 
-### 스킬 (4개)
+### 스킬 (6개)
 
 | 스킬 | 설명 |
 |------|------|
 | **init-specs** | 스펙 문서 초기화 (Git 브랜치 자동 생성) |
 | **specify-with-requirements** | 요구사항에서 기술 명세 자동 생성 |
 | **plan-with-specs** | 명세에서 구현 계획 자동 생성 |
+| **plan-with-requirements** | 낮은 난이도 요구사항에서 구현 계획 직행 생성 |
 | **update-requirements** | 요구사항 변경 및 연쇄 업데이트 |
+| **sync-to-jira** | specs/plans 문서를 Jira description으로 동기화 |
 
 ### 에이전트 (1개)
 
 | 에이전트 | 목적 |
 |----------|------|
 | **spec-manager** | 스펙 문서 라이프사이클 관리 |
+
+---
+
+## synapse-applications
+
+Synapse Workspace App을 OCI 이미지로 빌드하고 게시하는 플러그인입니다.
+
+### 스킬 (1개)
+
+| 스킬 | 설명 |
+|------|------|
+| **synapse-applications** | React, Vue, Next.js, Nuxt 3, Gradio, Streamlit, Static HTML, Django, FastAPI 기반 Synapse App 생성 및 게시 |
 
 ---
 
@@ -255,6 +301,8 @@ SDD(Spec-Driven Development) 경량 워크플로우 플러그인입니다. 요�
 | 항목 | 확인 명령어 | 최소 버전 |
 |------|------------|-----------|
 | Claude Code | `claude --version` | v2.1.0+ |
+| Codex | `codex --version` | 플러그인 지원 버전 |
+| OpenCode | `opencode --version` | `.opencode` 지원 버전 |
 | GITHUB_TOKEN | `echo $GITHUB_TOKEN` | - |
 
 ### synapse-plugin-helper 추가 요구 사항

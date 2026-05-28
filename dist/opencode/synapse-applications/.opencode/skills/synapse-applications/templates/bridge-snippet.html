@@ -1,0 +1,58 @@
+<!--
+  Synapse bridge snippet - drop into the app's <head>. Replace APP_NAME with metadata.name.
+  Envelope per docs/apps/bridge.md: { synapse:1, id, ts, type, from, replyTo?, payload? }.
+  Posts synapse:ready on load; handles synapse:theme/locale/user/ping; emits debounced synapse:resize.
+  Unknown types are silently ignored per spec.
+-->
+<script>
+(function () {
+  var APP_NAME = "APP_NAME";
+  var BRIDGE_VERSION = 1;
+  var store = (window.__synapse = window.__synapse || {});
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  function send(type, payload) {
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage({
+      synapse: BRIDGE_VERSION, id: uid(), ts: Date.now(),
+      type: type, from: APP_NAME, payload: payload
+    }, "*");
+  }
+
+  function applyTheme(resolved) {
+    document.documentElement.classList.toggle("dark", resolved === "dark");
+  }
+
+  // First-paint fallback before the host posts synapse:theme.
+  try { applyTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+
+  window.addEventListener("message", function (e) {
+    var data = e && e.data;
+    if (!data || data.synapse !== BRIDGE_VERSION) return;
+    switch (data.type) {
+      case "synapse:theme":
+        if (data.payload && data.payload.resolved) applyTheme(data.payload.resolved);
+        store.theme = data.payload; break;
+      case "synapse:locale": store.locale = data.payload; break;
+      case "synapse:user": store.user = data.payload; break;
+      case "synapse:hello": store.host = data.payload; break;
+      case "synapse:ping": send("synapse:pong", {}); break;
+    }
+  });
+
+  var resizeTimer = null;
+  function reportHeight() {
+    if (resizeTimer) cancelAnimationFrame(resizeTimer);
+    resizeTimer = requestAnimationFrame(function () {
+      var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+      send("synapse:resize", { height: h });
+    });
+  }
+  if (typeof ResizeObserver !== "undefined") {
+    try { new ResizeObserver(reportHeight).observe(document.documentElement); } catch (e) {}
+  }
+
+  send("synapse:ready", { app: APP_NAME, bridge: BRIDGE_VERSION });
+})();
+</script>

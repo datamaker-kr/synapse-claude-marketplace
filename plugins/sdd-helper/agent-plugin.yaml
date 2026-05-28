@@ -1,0 +1,50 @@
+name: sdd-helper
+version: 1.1.1
+description: Spec-Driven Development를 쉽게 도입할 수 있도록 도와주는 경량 SDD 워크플로우 플러그인. 난이도 기반 lite/full 파이프라인 분기와 Jira MCP 연동(자동 requirements 채움, specs/plans push-back)을 지원합니다.
+marketplace_description: Spec-Driven Development를 쉽게 도입할 수 있도록 도와주는 경량 SDD 워크플로우 플러그인. 난이도 기반 lite/full 파이프라인 분기와 Jira MCP 연동(requirements 자동 채움, specs/plans push-back)을 지원합니다.
+author:
+  name: Datamaker
+homepage: https://github.com/datamaker-kr/synapse-claude-marketplace
+repository: https://github.com/datamaker-kr/synapse-claude-marketplace
+license: SEE LICENSE IN LICENSE
+keywords:
+  - sdd
+  - spec-driven-development
+  - requirements
+  - specification
+  - planning
+  - workflow
+  - jira
+  - adf
+category: development
+tags:
+  - sdd
+  - requirements
+  - specification
+  - planning
+  - workflow
+  - jira
+  - adf
+interface:
+  display_name: SDD Helper
+  short_description: Lightweight spec-driven development with lite/full planning flows.
+  long_description: SDD Helper provides a lightweight requirements, specs, plans, update, and Jira sync workflow with difficulty-based lite/full pipeline selection.
+  capabilities:
+    - Interactive
+    - Write
+  default_prompt: Help me initialize, update, plan, or sync an SDD workflow.
+targets:
+  codex:
+    category: Development
+  opencode:
+    category: development
+commands: []
+skills:
+  - ./skills/init-specs/SKILL.md
+  - ./skills/specify-with-requirements/SKILL.md
+  - ./skills/plan-with-specs/SKILL.md
+  - ./skills/plan-with-requirements/SKILL.md
+  - ./skills/update-requirements/SKILL.md
+  - ./skills/sync-to-jira/SKILL.md
+agents:
+  - ./agents/spec-manager/SKILL.md

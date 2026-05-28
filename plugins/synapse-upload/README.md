@@ -48,6 +48,21 @@ pip install "synapse-sdk[all]>=2026.1.39"
 /plugin install synapse-upload@synapse-marketplace
 ```
 
+### Codex 설치
+
+```bash
+codex plugin marketplace add .
+codex plugin install synapse-upload@synapse-marketplace
+```
+
+Codex에서는 기존 slash command가 `skills/*-command/SKILL.md`로 제공됩니다.
+
+### OpenCode 사용
+
+```bash
+cp -R dist/opencode/synapse-upload/.opencode ./
+```
+
 ---
 
 ## 명령어

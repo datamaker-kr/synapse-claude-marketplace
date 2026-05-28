@@ -9,6 +9,15 @@
 
 ### Added
 
+- Codex 및 OpenCode 지원을 위한 agent-neutral marketplace 구조 추가
+  - 루트 `.agent-marketplace.yaml`과 각 `plugins/<plugin>/agent-plugin.yaml`을 공통 원본 manifest로 도입.
+  - `tools/generate-agent-marketplaces.py` 추가 — Claude Code, Codex, OpenCode 산출물을 공통 manifest에서 재생성.
+  - `tools/validate-agent-marketplaces.py` 추가 — manifest schema, 선언 파일, Codex manifest, command-derived skill, OpenCode adapter 검증.
+  - `.agents/plugins/marketplace.json` Codex marketplace 생성.
+  - 각 플러그인에 `.codex-plugin/plugin.json` 생성.
+  - Claude slash command를 Codex용 `skills/*-command/SKILL.md`로 변환.
+  - `dist/opencode/<plugin>/.opencode/` adapter 생성.
+  - `specs/codex-opencode-marketplace-support/plan.md` 구현 계획 문서 추가.
 - `sdd-helper` 플러그인 1.1.0으로 확장 — 난이도 기반 파이프라인 분기 + Jira MCP 연동 (SYN-6873)
   - **신규 스킬 `/plan-with-requirements`** — lite 파이프라인. `low` 난이도 작업에서 `requirements.md` → `plans.md`로 직행 (specs.md 단계 건너뜀).
   - **신규 스킬 `/sync-to-jira`** — 완성된 `specs.md` / `plans.md`를 Jira 이슈 description으로 push-back. `<!-- sdd:start --> ~ <!-- sdd:end -->` 마커 사이만 교체하므로 사람이 직접 작성한 description은 보존됨. `--target spec|plan|both`, `--field description|customfield_<id>` 옵션 지원.
@@ -47,11 +56,11 @@
 
 ### Changed
 
-- 마켓플레이스 버전 1.2.0으로 업데이트
-- 루트 README.md 플러그인 테이블 확장 (2개 → 6개)
-  - synapse-export, synapse-upload, speckit-helper, sdd-helper 상세 섹션 추가
-- AGENTS.md에 플러그인 문서화 필수 규칙 추가
-  - README 필수, 필수 섹션, 루트 README 등록, 한글 문서, plugin.json 정합성
+- 마켓플레이스 카탈로그 버전 1.6.0으로 업데이트.
+- 모든 플러그인 patch version bump 및 Claude/Codex marketplace version 동기화.
+- `synapse-applications` marketplace version을 plugin version 계열과 동기화.
+- 루트 README.md 플러그인 테이블과 설치 안내를 Claude Code/Codex/OpenCode 기준으로 갱신.
+- AGENTS.md와 CONTRIBUTING.md에 공통 manifest, generator, validator 운영 규칙 추가.
 - `platform-dev-team-common` Jira MCP 도구 응답 확장 및 일관화
   - `jira_get_ticket`: `fields`에 `description`(ADF JSON), `comment` 포함 가능. `commentLimit` 인자 추가 (기본 10)
   - 댓글은 `/issue/{id}/comment?orderBy=-created&maxResults=N` 별도 호출로 **최신순 정확히 N개** 보장 (이전 슬라이싱 방식의 정렬·페이지네이션 한계 제거)
@@ -74,12 +83,13 @@
 
 | 플러그인 | 버전 | 설명 |
 |---------|------|------|
-| synapse-plugin-helper | 1.0.0 | Synapse SDK 플러그인 개발 도구 |
-| platform-dev-team-common | 1.3.0 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
-| speckit-helper | 1.0.0 | 명세 기반 개발(SDD) 플러그인 |
-| synapse-upload | 1.0.0 | AI 기반 Synapse 데이터 업로드 |
-| synapse-export | 1.0.0 | AI 기반 Synapse 어노테이션 내보내기 |
-| sdd-helper | 1.0.0 | SDD 경량 워크플로우 플러그인 |
+| synapse-plugin-helper | 1.0.1 | Synapse SDK 플러그인 개발 도구 |
+| platform-dev-team-common | 1.3.2 | TDD, 문서 관리, PR 자동화, Jira 연동 플러그인 |
+| speckit-helper | 1.0.1 | 명세 기반 개발(SDD) 플러그인 |
+| synapse-upload | 1.0.1 | AI 기반 Synapse 데이터 업로드 |
+| synapse-export | 1.0.1 | AI 기반 Synapse 어노테이션 내보내기 |
+| sdd-helper | 1.1.1 | SDD 경량 워크플로우 플러그인 |
+| synapse-applications | 0.3.4 | Synapse App 빌드 및 OCI 배포 |
 
 ## [1.1.1] - 2026-02-06
 
