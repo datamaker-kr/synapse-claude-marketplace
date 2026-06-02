@@ -226,6 +226,68 @@ class MyDeploymentAction(BaseDeploymentAction[DeployParams]):
 
 ---
 
+## Production Pitfall: Long Inference, the Event Loop, and Concurrency
+
+A `serve` deployment runs as a Ray Serve replica behind an asyncio event loop (the FastAPI ingress). The single most common way to make a serve plugin fail under real traffic is to do **heavy, blocking work directly in the async `infer` handler**. This bites hard with large models (e.g. a multi-GB Whisper / ASR checkpoint) and shows up as a confusing cascade — `"Failed to route request"`, `"Replica at capacity"`, `ReadTimeout`, `"Agent connection error"`, `"Max retries exceeded"` — none of which name the real cause.
+
+There are two distinct traps. You need to handle both.
+
+### Trap 1 — Blocking the event loop starves the replica
+
+The replica's event loop must stay responsive to answer Ray Serve health checks and accept/route requests. Synchronous model loading (`from_pretrained`, `torch.load`) and inference (`pipeline(...)`, `model.generate(...)`) block the loop for the entire call — seconds to minutes. While blocked, the replica looks dead: health checks fail, the proxy can't route, and *other* in-flight requests (including their `FileField` downloads, which run during request validation on the same loop) stall to `ReadTimeout`. The work itself is fine — the starvation is what kills neighbours.
+
+**Fix:** run blocking work in a worker thread so the loop stays free.
+
+```python
+@app.post('/')
+async def infer(self, data: InferenceInput) -> dict:
+    model = await self.get_model()
+    # offload the blocking transcription/prediction off the event loop
+    return await asyncio.to_thread(self._run, model, data)
+```
+
+### Trap 2 — Rejecting requests triggers a client retry storm
+
+The instinct after Trap 1 is to set `max_ongoing_requests: 1` so the GPU only does one thing at a time. **Don't.** When a request arrives and the replica is already at its limit, Ray Serve returns **503 "at capacity"**. The synapse-sdk backend client treats 503 as retryable (it's in the retry forcelist), so it immediately re-sends — and every retry hits the still-busy replica and is rejected again. The result is a retry storm where the caller exhausts its retries and returns **400** to the job, *even though the original request transcribes successfully and returns 200*. The successful 200 is orphaned; the dispatch layer already gave up.
+
+**Fix:** keep `max_ongoing_requests` **high** so requests are *admitted* rather than rejected, and serialize the GPU yourself with a lock. Admitted requests then wait on the lock instead of bouncing off a 503.
+
+```python
+import asyncio, threading
+
+_INFER_LOCK = threading.Lock()  # one model instance is not thread-safe; GPU is serial anyway
+
+class MyServe(BaseServeDeployment):
+    async def infer(self, data):
+        model = await self.get_model()
+        return await asyncio.to_thread(self._run, model, data)
+
+    def _run(self, model, data):
+        with _INFER_LOCK:          # serialize the actual generate() call
+            return model.transcribe(data.audio_path)
+```
+
+```yaml
+# config.yaml — deployment action
+deployment:
+  entrypoint: plugin.deployment.InferenceDeployment
+  method: job
+  serve_options:
+    max_ongoing_requests: 32     # admit + queue; do NOT set to 1 (causes 503 retry storms)
+    health_check_timeout_s: 180  # survive the one-time cold model-artifact download (multi-GB)
+    health_check_period_s: 30
+```
+
+### Cold-start model download
+
+`get_model()` (multiplexed loading) downloads and extracts the registered model artifact on the **first** request for a given `model_id`, then caches it. For a multi-GB model this is tens of seconds and currently runs synchronously inside the SDK's load path, briefly blocking the loop. Raising `health_check_timeout_s` keeps Ray Serve from declaring the replica dead during that window; after the first request the model is cached and subsequent calls skip it.
+
+### Caller-side timeout
+
+Inference is dispatched **synchronously** through the backend (`POST /plugins/<code>/run/`). The backend client's default read timeout is short (~15s). If a single inference legitimately takes longer than that (long audio, large input), the *caller* must allow for it — e.g. a pre-processor/`to_task` plugin should raise `ctx.client.timeout['read']` before issuing the inference call. See `add-task-data-action.md`.
+
+---
+
 ## Progress Categories
 
 ### InferenceProgressCategories

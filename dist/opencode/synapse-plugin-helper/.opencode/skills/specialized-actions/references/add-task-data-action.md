@@ -90,6 +90,21 @@ def convert_data_from_inference(
     raise NotImplementedError
 ```
 
+### Inference dispatch is synchronous — mind the timeout
+
+In `inference` mode the action calls the pre-processor's serve endpoint synchronously via the backend (`client.run_plugin(<code>, ...)`), and **blocks until the prediction returns**. The backend client's default read timeout is short (~15s). A slow pre-processor — e.g. a large STT/ASR or diffusion model whose first request cold-loads a multi-GB checkpoint, or that simply takes minutes on long input — will blow past it, surfacing as a `ReadTimeout` and a failed task even though the model is working.
+
+Raise the read timeout on the runtime client before issuing inference (e.g. in `setup_inference_params`, which runs just before the dispatch):
+
+```python
+client = self.ctx.client
+if client is not None:
+    existing = client.timeout or {}
+    client.timeout = {'connect': existing.get('connect', 5), 'read': 600}
+```
+
+Also ensure the **per-processor data_type is supported** when you build the inference payload — `_build_json_payload` only maps `image` -> `image_path` out of the box; for audio/text models add the matching branch (e.g. `audio` -> `audio_path`) so the key matches the serve plugin's input field.
+
 ---
 
 ## Result Schema

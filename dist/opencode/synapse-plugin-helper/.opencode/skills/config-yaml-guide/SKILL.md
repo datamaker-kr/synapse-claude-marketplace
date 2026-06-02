@@ -71,6 +71,7 @@ actions:
 | `entrypoint` | Yes | Module path (`module.path:ClassName` or `module.path.function`) |
 | `method` | No | Execution method: `job`, `task`, or `serve` (default: `task`) |
 | `description` | No | Human-readable description |
+| `serve_options` | No | Ray Serve deployment tuning (deployment actions only) — see below |
 
 **Config Sync (Recommended)**
 
@@ -79,6 +80,31 @@ Sync entrypoints, input/output types, and hyperparameters from code:
 ```bash
 synapse plugin update-config
 ```
+
+> Note: `update-config` (and `publish`, which runs it implicitly) discovers actions by scanning **every** `*.py` under the project root and rewrites `config.yaml` in place. It ignores `.synapseignore`/`.gitignore`, so action classes in `refs/`, `examples/`, or a local `.venv/` get pulled in and overwrite your real entrypoints. Publish from a clean staging copy (`--path`) to avoid this — see the publish command docs.
+
+### serve_options (deployment actions)
+
+A `deployment` action passes `serve_options` straight to `serve.deployment()`. These control how the Ray Serve replica handles load — important for GPU model serving where each request can take many seconds.
+
+```yaml
+deployment:
+  entrypoint: plugin.deployment.InferenceDeployment
+  method: job
+  serve_options:
+    max_ongoing_requests: 32     # requests admitted per replica before backpressure
+    health_check_timeout_s: 180  # tolerate slow cold model loads
+    health_check_period_s: 30
+    # num_replicas, max_queued_requests, autoscaling_config, graceful_shutdown_* also supported
+```
+
+| Option | Purpose |
+|--------|---------|
+| `max_ongoing_requests` | Concurrent requests admitted per replica. **Keep this high** (e.g. 32). A low value (especially `1`) makes the replica return 503 "at capacity" under burst/retry traffic, which the SDK client retries — a storm that fails requests even when the work succeeds. Serialize GPU work with a lock in the handler instead. |
+| `health_check_timeout_s` | Raise it (e.g. 180) so a one-time multi-GB cold model download doesn't get the replica killed as "unhealthy". |
+| `num_replicas` | Number of replicas (default 1). |
+
+For the handler-side companion fixes (offloading blocking inference with `asyncio.to_thread`, the GPU lock), see the inference-action reference in the specialized-actions skill.
 
 ## Execution Methods
 
