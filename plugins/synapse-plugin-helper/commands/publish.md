@@ -112,15 +112,39 @@ After successful publishing:
 ╚══════════════════════════════════════════════════╝
 ```
 
+## Critical: Publish Scans the Entire Directory Tree
+
+Before uploading, `synapse plugin publish` runs the same config sync as `synapse plugin update-config`. That sync calls `PluginDiscovery.discover_actions()`, which does `plugin_dir.rglob('*.py')` over the **whole project root** and imports every `BaseAction` subclass it finds — then **rewrites `config.yaml` in place** ("Synced types from code"). It only skips `__pycache__`, `test_*.py`, and `conftest.py`. It does **not** honor `.synapseignore` or `.gitignore`.
+
+This means any action classes living under the project root get pulled into your `config.yaml`, overwriting your real entrypoints:
+- `refs/`, `examples/`, or vendored sample plugins → their `train`/`convert`/`download`/`to_task` actions get added with foreign entrypoints like `refs.yolo.plugin.train.TrainAction`.
+- A local `.venv/` → the SDK's own sample actions get pulled in (e.g. `.venv.lib.python3.x.site-packages.synapse_sdk.plugins.testing.sample_actions.*`, `DefaultExportAction`).
+
+The result is a polluted `config.yaml` and a release that references modules that don't exist at runtime. The archive (`.synapseignore`) may look clean while the synced **config** is wrong — check the "Actions:" line in the publish output; if it lists actions you didn't define, the sync was poisoned.
+
+**Reliable fix — publish from a clean staging copy via `--path`** so the rglob only sees real plugin files:
+
+```bash
+rm -rf /tmp/<code>-publish && mkdir -p /tmp/<code>-publish
+cp -r plugin config.yaml README.md requirements.txt pyproject.toml .synapseignore /tmp/<code>-publish/
+rm -rf /tmp/<code>-publish/plugin/__pycache__
+synapse plugin publish --path /tmp/<code>-publish --host <host> --token <token> -y
+```
+
+Moving `refs/` out of the tree is *not* enough on its own when a `.venv/` also lives inside the project — the staging copy is the robust approach.
+
+Also exclude large artifacts from the archive. Model checkpoints or zips (e.g. `whisper-large-v3.zip`, multi-GB weights) left in the project root get archived and uploaded, hanging the publish. Add them to `.synapseignore` — and note the pattern must match the file: `*.zip` matches `model.zip`, but a bare `whisper-large-v3` does **not** match `whisper-large-v3.zip`.
+
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `--dry-run` | Preview without uploading |
-| `--debug` | Debug mode (bypasses backend validation) |
+| `--dry-run` | Preview without uploading (still runs config sync, which rewrites config.yaml) |
+| `--debug` | Debug mode: bypasses backend validation, and lets you **re-publish an existing version** without bumping it |
 | `--yes` | Skip confirmation prompt |
-| `--path` | Plugin directory (default: current) |
+| `--path` | Plugin directory (default: current) — use a clean staging copy to avoid config-sync pollution |
 | `--config` | Config file path (config.yaml or synapse.yaml) |
+| `--host` / `--token` | Target backend + access token; pass explicitly to avoid relying on (or clobbering) saved `~/.synapse/config.json` |
 
 ## Error Handling
 
