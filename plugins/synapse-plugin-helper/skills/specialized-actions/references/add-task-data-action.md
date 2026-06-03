@@ -90,20 +90,20 @@ def convert_data_from_inference(
     raise NotImplementedError
 ```
 
-### Inference dispatch is synchronous — mind the timeout
+### Inference dispatch is synchronous — long pre-processors need deferred responses
 
-In `inference` mode the action calls the pre-processor's serve endpoint synchronously via the backend (`client.run_plugin(<code>, ...)`), and **blocks until the prediction returns**. The backend client's default read timeout is short (~15s). A slow pre-processor — e.g. a large STT/ASR or diffusion model whose first request cold-loads a multi-GB checkpoint, or that simply takes minutes on long input — will blow past it, surfacing as a `ReadTimeout` and a failed task even though the model is working.
+In `inference` mode the action calls the pre-processor's serve endpoint synchronously via the backend (`client.run_plugin(<code>, ...)`) and **blocks until the prediction returns**. The binding ceiling is the **backend->agent** client read timeout (~10s), not the caller's. A slow pre-processor (large STT/ASR or diffusion, cold multi-GB checkpoint, or minutes on long input) blows past it -> `ReadTimeout` / failed task even though the model is working.
 
-Raise the read timeout on the runtime client before issuing inference (e.g. in `setup_inference_params`, which runs just before the dispatch):
-
-```python
-client = self.ctx.client
-if client is not None:
-    existing = client.timeout or {}
-    client.timeout = {'connect': existing.get('connect', 5), 'read': 600}
-```
+Raising the caller's `ctx.client.timeout['read']` does **not** fix this — that's the job->backend leg, not the backend->agent leg that actually severs the call. The real fix is on the **serve side**: the pre-processor should use the deferred-response pattern (`BaseServeDeployment.handle_inference` — deadline -> poll ticket), and `to_task` automatically polls the ticket to completion. See `inference-action.md` "Trap 3". No caller change is needed; `to_task` resolves deferred envelopes transparently and treats a plain (non-envelope) response as the final result.
 
 Also ensure the **per-processor data_type is supported** when you build the inference payload — `_build_json_payload` only maps `image` -> `image_path` out of the box; for audio/text models add the matching branch (e.g. `audio` -> `audio_path`) so the key matches the serve plugin's input field.
+
+### Inference output tool must match the project's annotation schema
+
+`convert_data_from_inference` runs `DMV2ToV1Converter().convert(...)`, but the converted v1 tool is then validated against the **target project's schema** on submit. A wrong tool fails the task with `'"<tool>"이 유효하지 않은 선택(choice)입니다'` (invalid choice) — *after* a successful inference. Pick the tool the project actually defines (inspect `GET /projects/<id>/` -> `configuration`), not just any converter-supported tool:
+
+- **Audio transcription** is typically an audio **`segmentation`** tool (class e.g. `speech`, attribute `transcript`), *not* `classification`. DM v2 shape: `{"audios":[{"segmentation":[{id, classification:"speech", attrs:[{name:"transcript",value:...}], data:{start, end}}]}]}` where `data.start/end` are **seconds** -> v1 `section:{start,end}`.
+- Emit **one annotation per timestamped segment**: Whisper's transformers pipeline with `return_timestamps=True` returns `chunks: [{'timestamp': (start, end), 'text'}]` — map each chunk to its own segment rather than one whole-clip blob. (A near-silent/non-speech region often yields a hallucinated `...` chunk — a Whisper artifact, not a pipeline bug.)
 
 ---
 

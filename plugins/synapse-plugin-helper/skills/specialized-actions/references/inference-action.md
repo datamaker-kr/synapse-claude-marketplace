@@ -282,9 +282,34 @@ deployment:
 
 `get_model()` (multiplexed loading) downloads and extracts the registered model artifact on the **first** request for a given `model_id`, then caches it. For a multi-GB model this is tens of seconds and currently runs synchronously inside the SDK's load path, briefly blocking the loop. Raising `health_check_timeout_s` keeps Ray Serve from declaring the replica dead during that window; after the first request the model is cached and subsequent calls skip it.
 
-### Caller-side timeout
+### Trap 3 — Inference longer than the synchronous dispatch timeout
 
-Inference is dispatched **synchronously** through the backend (`POST /plugins/<code>/run/`). The backend client's default read timeout is short (~15s). If a single inference legitimately takes longer than that (long audio, large input), the *caller* must allow for it — e.g. a pre-processor/`to_task` plugin should raise `ctx.client.timeout['read']` before issuing the inference call. See `add-task-data-action.md`.
+`serve` inference is dispatched **synchronously**, and the call is held open across the whole chain: caller -> backend -> **agent** -> Ray Serve replica. The binding ceiling is the **backend->agent client read timeout, ~10s** (`AgentClient` default `{'connect':3,'read':10}`), with the ingress (~60s) and any CDN/Cloudflare (~100s) as further caps. A 10-30 minute transcription/diffusion cannot survive this no matter what you set — and a dropped connection loses all GPU work. Fast online models (sub-10s) are the only ones that fit synchronous serve.
+
+> A common dead-end is raising the *caller's* `ctx.client.timeout['read']`. That's the **wrong leg** — it's the job->backend hop, not the backend->agent hop that actually severs long inference. Don't rely on it.
+
+**The durable fix — deferred serve responses (`BaseServeDeployment.handle_inference`).** Wrap your root serve route so work runs in the background and the call returns within a short deadline:
+
+```python
+from fastapi import Request
+
+@app.post('/')
+async def infer(self, request: Request):
+    body = await request.json()
+    # done within deadline -> bare result (unchanged); else -> {__synapse_deferred__, ticket}
+    return await self.handle_inference(body, InferenceInput, self._run_inference)
+
+async def _run_inference(self, data: InferenceInput):
+    model = await self.get_model()
+    transcript = await asyncio.to_thread(run_blocking_inference, model, data)
+    return to_dm_v2(transcript)
+```
+
+- Fast path returns the **bare result** (byte-for-byte unchanged) — existing callers/plugins are unaffected; only work exceeding `serve_deadline_s` (default 8s, below the 10s ceiling) returns a poll ticket.
+- The caller (`to_task`) auto-polls the same endpoint until the ticket resolves — no held connection. Backward compatible: a response without the `__synapse_deferred__` envelope is treated as the final result.
+- Keep it opt-in with a `hasattr(self, 'handle_inference')` fallback so the plugin also runs on an older SDK (degrades to synchronous).
+- **Offload `get_model()` too**, not just inference: a cold multi-GB model load runs synchronously inside the load path and *blocks the event loop*, so the deadline timer can't fire until the model is loaded — the first request still blocks. Wrap loading in `asyncio.to_thread` (or pre-warm) so deferral engages on cold start.
+- **Single replica only.** The ticket store is in-memory per replica. If the replica restarts or scales >1, an in-flight poll returns `not_found` and that task fails. Don't redeploy/bounce the serve while a `to_task` run is mid-flight.
 
 ---
 
