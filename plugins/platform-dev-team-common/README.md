@@ -490,14 +490,14 @@ platform-dev-team-claude-plugin/
 │   ├── commit-with-message/   # 커밋 메시지 규칙
 │   ├── tdd-workflow/          # TDD 가이드
 │   └── jira-sync/             # Jira 상태 동기화 규칙
-├── commands/                  # Claude 커맨드
-│   ├── update-pr-title.md
-│   ├── update-pr-desc.md
-│   ├── update-docs.md
-│   └── sync-jira-tickets.md   # Jira 동기화 커맨드
-└── mcp-servers/               # MCP 서버
-    └── jira/                  # Jira MCP 서버 (11개 도구)
+└── commands/                  # Claude 커맨드
+    ├── update-pr-title.md
+    ├── update-pr-desc.md
+    ├── update-docs.md
+    └── sync-jira-tickets.md   # Jira 동기화 커맨드 (공식 Atlassian Rovo MCP 사용)
 ```
+
+> Jira 연동은 자체 MCP 서버 대신 **공식 Atlassian Rovo MCP 서버**(원격 호스티드)를 사용합니다. 설정은 아래 "Atlassian MCP 서버" 섹션을 참조하세요.
 
 ---
 
@@ -767,7 +767,7 @@ CHANGELOG.md의 Jira 티켓들을 Git 브랜치 상태에 맞게 동기화합니
 - staging 배포 시 커스텀 필드 자동 변경
 - dry-run 모드로 안전하게 미리보기
 
-**사전 요구사항**: Jira MCP 서버 설정 필요 (아래 "Jira MCP 서버" 섹션 참조)
+**사전 요구사항**: Atlassian MCP 서버(공식 Rovo MCP) 설정 필요 (아래 "Atlassian MCP 서버" 섹션 참조)
 
 ### /add-changelog
 
@@ -849,33 +849,29 @@ platform-dev-team-claude-plugin/
 └── README.md                 # 이 파일
 ```
 
-### Jira MCP 서버
+### Atlassian MCP 서버
 
-Jira 연동 기능(`/sync-jira-tickets`)을 사용하려면 Jira MCP 서버를 설정해야 합니다.
+Jira 연동 기능(`/sync-jira-tickets`)은 공식 **Atlassian Rovo MCP 서버**(원격 호스티드)를 사용합니다. 엔드포인트는 `https://mcp.atlassian.com/v1/mcp`이며, OAuth 2.1로 인증합니다(API 토큰 저장 불필요).
 
-**1. Jira API Token 발급**
+**1. Claude Code에 등록 (OAuth 2.1 권장)**
 
-[https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)에서 API Token을 생성합니다.
-
-**2. `~/.claude.json`에 추가**
-
-```jsonc
-{
-  "mcpServers": {
-    "jira": {
-      "command": "npx",
-      "args": ["tsx", "<plugin-path>/mcp-servers/jira/src/index.ts"],
-      "env": {
-        "JIRA_API_TOKEN": "발급받은_토큰",
-        "JIRA_USER_EMAIL": "your@datamaker.io",
-        "JIRA_BASE_URL": "https://datamaker.atlassian.net"
-      }
-    }
-  }
-}
+```bash
+claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp
 ```
 
-**3. Claude Code 재시작**
+**2. OAuth 인증**
+
+Claude Code 세션에서 `/mcp`를 실행한 뒤 `atlassian` 서버를 선택하여 브라우저로 OAuth 인증을 완료합니다.
+
+**3. 일반 MCP 클라이언트(데스크톱 등) 설정**
+
+Claude Code가 아닌 일반 클라이언트는 설정 파일에 아래 JSON을 추가합니다:
+
+```json
+{ "mcpServers": { "atlassian": { "url": "https://mcp.atlassian.com/v1/mcp" } } }
+```
+
+> Claude Code에서 도구 이름은 `mcp__atlassian__<도구명>` 접두사로 노출됩니다. 지원 도구 전체 목록은 [공식 문서](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/supported-tools/)를 참조하세요. 워크플로 시작 시 `getAccessibleAtlassianResources`를 1회 호출해 `cloudId`를 확보하고 이후 모든 호출에 재사용합니다(다른 Jira 도구는 cloudId를 입력으로 요구하므로 cloudId 발견용으로 쓸 수 없습니다).
 
 ### MCP 서버 구성
 

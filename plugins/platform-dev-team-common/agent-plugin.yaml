@@ -56,5 +56,3 @@ agents:
   - ./agents/docs-manager/SKILL.md
   - ./agents/planner/SKILL.md
   - ./agents/update-pr/SKILL.md
-mcp_servers:
-  - ./mcp-servers/jira

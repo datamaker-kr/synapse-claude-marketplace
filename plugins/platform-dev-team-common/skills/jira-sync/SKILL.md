@@ -1,7 +1,7 @@
 ---
 name: jira-sync
 description: CHANGELOG 기반 Jira 티켓 상태를 Git 브랜치 상태에 맞게 동기화하는 로직을 가이드합니다.
-allowed-tools: mcp__jira__jira_get_ticket, mcp__jira__jira_transition, mcp__jira__jira_update_field, mcp__jira__jira_list_transitions, mcp__jira__changelog_extract_tickets, mcp__jira__changelog_check_branches, Read, Bash
+allowed-tools: mcp__atlassian__getJiraIssue, mcp__atlassian__transitionJiraIssue, mcp__atlassian__getTransitionsForJiraIssue, mcp__atlassian__editJiraIssue, mcp__atlassian__getAccessibleAtlassianResources, Read, Bash
 user-invocable: false
 ---
 
@@ -24,15 +24,18 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 
 ## 상태 전이 규칙
 
+> **전제 (취소/종료 제외)**: 상태가 "취소" 등 **터미널 상태인 티켓은 모든 규칙에서 제외(SKIP)**하고 사유를 기록한다.
+> **전이 선택**: `getTransitionsForJiraIssue` 결과 중 **대상 상태(`to.name`)가 목표 상태와 일치하는 전이**를 고른다(전이 *이름*이 아니라 대상 상태 기준). 목표 전이가 목록에 없으면 직접 전이 불가이므로 SKIP하고 사유를 기록한다.
+
 ### 규칙 1: main 또는 staging 병합 → 리뷰 완료
 
 - **조건**: 티켓이 main 또는 staging 브랜치에 포함되어 있고, 현재 상태가 리뷰 완료 미만 (대기, 진행 중, 리뷰 중)
-- **액션**: `jira_transition` → "리뷰 완료"
+- **액션**: `getTransitionsForJiraIssue`로 "리뷰 완료" 전이 id를 조회한 후 `transitionJiraIssue`로 전이
 
 ### 규칙 2: staging 배포 여부 → customfield 변경
 
 - **조건**: 티켓이 staging 또는 production 브랜치에 포함됨 (main → staging → production 순서이므로 production은 staging을 거친 것)
-- **액션**: `jira_update_field(customfield_10659, {id: "10678"})` (이미 설정되어 있으면 SKIP)
+- **액션**: `editJiraIssue(fields: { customfield_10659: { id: "10678" } })` (이미 설정되어 있으면 SKIP)
 
 ### 규칙 3: staging + 검토 완료 → SKIP
 
@@ -42,7 +45,7 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 ### 규칙 4: production 병합 → 완료
 
 - **조건**: 티켓이 production 브랜치에 포함되고 현재 상태가 "완료"가 아님
-- **액션**: `jira_transition` → "완료"
+- **액션**: `getTransitionsForJiraIssue`로 "완료" 전이 id를 조회한 후 `transitionJiraIssue`로 전이
 
 ## 상태 순서 (전이 판단용)
 
@@ -55,3 +58,5 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 - 필드: `customfield_10659`
 - 타입: select
 - staging 병합 시 값: `{id: "10678"}`
+
+> 이 필드 id/값과 위 상태명("리뷰 완료"·"검토 완료"·"완료")은 **datamaker Jira 워크플로 전용** 값이다. 다른 Jira 인스턴스에 적용하려면 이 값들을 해당 워크플로에 맞게 조정해야 한다.

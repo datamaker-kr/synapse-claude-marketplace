@@ -246,14 +246,14 @@ FR-3                           →  TS-3                    →  Step 3, Step 4
 
 ### 예시 C: Jira MCP 자동 채움 + push-back
 
-Jira MCP가 환경에 설치되어 있고 `JIRA_*` 환경변수가 설정된 경우에만 사용 가능합니다.
+공식 Atlassian MCP가 연결되어 있고(`/mcp` OAuth 인증 완료) 티켓 ID가 있는 경우에만 사용 가능합니다.
 
 ```bash
 # Jira 티켓에서 requirements.md 초안 자동 생성
 /init-specs SYN-1234 사용자 인증 기능
 
 # Claude가:
-#   - Jira MCP의 jira_get_ticket 호출
+#   - Atlassian MCP의 getJiraIssue 호출
 #   - summary → Overview, description의 Acceptance Criteria → FR-N 매핑
 #   - priority/labels로 난이도 추론 (--difficulty 명시되지 않은 경우)
 #   - requirements.md 헤더: Status: Draft (from Jira), Source: jira:SYN-1234
@@ -269,7 +269,7 @@ Jira MCP가 환경에 설치되어 있고 `JIRA_*` 환경변수가 설정된 경
 #   1. Jira MCP 가용성 확인
 #   2. specs.md + plans.md를 단일 markdown payload로 결합
 #   3. 현재 Jira description과 diff 표시
-#   4. 사용자 Apply 확인 후 Markdown → ADF 변환하여 PUT
+#   4. 사용자 Apply 확인 후 스킬이 마커 splice하여 Markdown을 editJiraIssue로 전달 (ADF 변환은 Atlassian MCP가 수행)
 #   5. description의 <!-- sdd:start --> ~ <!-- sdd:end --> 구간만 교체
 #   6. Jira 이슈 링크 출력
 ```
@@ -300,15 +300,15 @@ Jira MCP가 환경에 설치되어 있고 `JIRA_*` 환경변수가 설정된 경
 
 ## Jira MCP 연동
 
-`sdd-helper`는 `platform-dev-team-common` 플러그인이 제공하는 Jira MCP 서버와 자연스럽게 연동됩니다.
+`sdd-helper`는 공식 Atlassian Rovo MCP 서버(원격, `https://mcp.atlassian.com/v1/mcp`)와 자연스럽게 연동됩니다.
 
 | 연동 지점 | 사용 도구 | 효과 |
 |-----------|-----------|------|
-| `/init-specs` 자동 채움 | `jira_get_ticket` | Jira 이슈의 summary/description/AC를 `requirements.md`로 매핑 |
-| `/init-specs` 난이도 추론 | `jira_get_ticket` (priority, labels) | `--difficulty` 미지정 시 자동 분류 (`low` / `medium` / `high`) |
-| `/sync-to-jira` push-back | `jira_update_ticket_from_markdown` | `specs.md` / `plans.md`를 Markdown → ADF 변환 후 description 마커 구간에 PUT |
+| `/init-specs` 자동 채움 | `getJiraIssue` | Jira 이슈의 summary/description/AC를 `requirements.md`로 매핑 |
+| `/init-specs` 난이도 추론 | `getJiraIssue` (priority, labels) | `--difficulty` 미지정 시 자동 분류 (`low` / `medium` / `high`) |
+| `/sync-to-jira` push-back | 공식 Atlassian MCP `getJiraIssue` + `editJiraIssue` | `specs.md` / `plans.md`를 스킬이 마커 splice 후 Markdown으로 description에 반영 (ADF 변환은 Atlassian MCP) |
 
-Jira MCP가 설치되지 않았거나 환경변수가 없으면 위 기능은 **조용히 비활성화**되고, 나머지 오프라인 워크플로우(파일 생성/업데이트)는 정상 동작합니다. 설치 방법은 [`mcp-servers/jira/README.md`](../platform-dev-team-common/mcp-servers/jira/README.md)를 참조하세요.
+공식 Atlassian MCP가 연결되지 않았으면 위 기능은 **조용히 비활성화**되고, 나머지 오프라인 워크플로우(파일 생성/업데이트)는 정상 동작합니다. 설정: `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp` 실행 후 `/mcp`로 OAuth 인증하세요.
 
 ## speckit-helper와의 비교
 
