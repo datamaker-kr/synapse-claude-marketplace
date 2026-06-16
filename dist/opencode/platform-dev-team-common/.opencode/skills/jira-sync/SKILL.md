@@ -1,7 +1,7 @@
 ---
 name: jira-sync
 description: CHANGELOG 기반 Jira 티켓 상태를 Git 브랜치 상태에 맞게 동기화하는 로직을 가이드합니다.
-allowed-tools: mcp__jira__jira_get_ticket, mcp__jira__jira_transition, mcp__jira__jira_update_field, mcp__jira__jira_list_transitions, mcp__jira__changelog_extract_tickets, mcp__jira__changelog_check_branches, Read, Bash
+allowed-tools: mcp__atlassian__getJiraIssue, mcp__atlassian__transitionJiraIssue, mcp__atlassian__getTransitionsForJiraIssue, mcp__atlassian__editJiraIssue, mcp__atlassian__getAccessibleAtlassianResources, Read, Bash
 user-invocable: false
 ---
 
@@ -27,12 +27,12 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 ### 규칙 1: main 또는 staging 병합 → 리뷰 완료
 
 - **조건**: 티켓이 main 또는 staging 브랜치에 포함되어 있고, 현재 상태가 리뷰 완료 미만 (대기, 진행 중, 리뷰 중)
-- **액션**: `jira_transition` → "리뷰 완료"
+- **액션**: `getTransitionsForJiraIssue`로 "리뷰 완료" 전이 id를 조회한 후 `transitionJiraIssue`로 전이
 
 ### 규칙 2: staging 배포 여부 → customfield 변경
 
 - **조건**: 티켓이 staging 또는 production 브랜치에 포함됨 (main → staging → production 순서이므로 production은 staging을 거친 것)
-- **액션**: `jira_update_field(customfield_10659, {id: "10678"})` (이미 설정되어 있으면 SKIP)
+- **액션**: `editJiraIssue(fields: { customfield_10659: { id: "10678" } })` (이미 설정되어 있으면 SKIP)
 
 ### 규칙 3: staging + 검토 완료 → SKIP
 
@@ -42,7 +42,7 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 ### 규칙 4: production 병합 → 완료
 
 - **조건**: 티켓이 production 브랜치에 포함되고 현재 상태가 "완료"가 아님
-- **액션**: `jira_transition` → "완료"
+- **액션**: `getTransitionsForJiraIssue`로 "완료" 전이 id를 조회한 후 `transitionJiraIssue`로 전이
 
 ## 상태 순서 (전이 판단용)
 

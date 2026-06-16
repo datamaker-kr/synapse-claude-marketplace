@@ -21,7 +21,7 @@ This is an **orchestrator agent** that coordinates the full specification lifecy
 - **plan-with-specs**: Generate implementation plans from finalized specs (full pipeline).
 - **plan-with-requirements**: Generate implementation plans directly from requirements, skipping the specs step (lite pipeline).
 - **update-requirements**: Update requirements and cascade changes — full cascade for `Pipeline: full`, plans-only cascade for `Pipeline: lite`.
-- **sync-to-jira**: Push the finalized `specs.md` / `plans.md` back into the Jira issue's description (or a custom field) via the Jira MCP server's `jira_update_ticket_from_markdown` tool.
+- **sync-to-jira**: Push the finalized `specs.md` / `plans.md` back into the Jira issue's description (or a custom field) using the official Atlassian MCP (`getJiraIssue` / `editJiraIssue`); the skill performs the marker splice at the markdown level and the Atlassian MCP handles the markdown → ADF conversion server-side.
 
 ## Purpose
 

@@ -59,10 +59,9 @@ Skip this step entirely if `--no-jira` was passed or no ticket ID exists.
 Otherwise, determine whether Jira MCP tools are available in the current session:
 
 1. Look for any of these tool name prefixes in the available tools:
-   - `mcp__jira__jira_get_ticket`
-   - `mcp__platform-dev-team-common__jira__jira_get_ticket`
-   - any tool whose name ends with `jira_get_ticket`
-2. Use the first matching prefix. Record it as the active Jira MCP prefix for this run (used by Steps 0.6 and 0.7).
+   - `mcp__atlassian__getJiraIssue`
+   - any tool whose name ends with `getJiraIssue`
+2. Use the first matching prefix. Record it as the active Jira MCP prefix for this run (used by Steps 0.6 and 0.7). When available, also call `getAccessibleAtlassianResources` once at the start to obtain a `cloudId` for subsequent calls (other Jira tools require `cloudId` as input, so they can't be used to discover it).
 3. If no matching tool is found, set Jira MCP availability to `false`. Do not error — Jira features are optional.
 
 Record the result internally; do **not** write it to any file.
@@ -75,7 +74,7 @@ Resolution order (use the first that succeeds):
 
 1. **Explicit flag**: If `--difficulty=<value>` was passed, use it.
 2. **Jira heuristic** (only when Jira MCP available + ticket ID exists):
-   - Call `jira_get_ticket(ticketId, fields=["summary", "priority", "labels"])`.
+   - Call `getJiraIssue({ cloudId, issueIdOrKey: ticketId, fields: ["summary", "priority", "labels"] })`.
    - Apply rules in order:
      - `priority` ∈ {`Lowest`, `Low`} **OR** any label in {`trivial`, `chore`, `docs`} → `low`
      - `priority` ∈ {`Highest`, `High`} **OR** any label in {`epic`, `spike`} → `high`
@@ -299,9 +298,9 @@ Skip if any of the following holds:
 
 Otherwise:
 
-1. Call `jira_get_ticket` (using the prefix detected in Step 0.5) with:
+1. Call `getJiraIssue` (using the prefix detected in Step 0.5) with:
    ```
-   { ticketId, fields: ["summary", "description", "priority", "labels", "comment"], commentLimit: 5 }
+   { cloudId, issueIdOrKey: ticketId, fields: ["summary", "description", "priority", "labels"] }
    ```
 2. If the call fails (auth, network, 404), do **not** overwrite the empty template. Keep `> Status: Draft` and append a note to the Overview section:
    ```

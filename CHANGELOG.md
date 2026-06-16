@@ -56,6 +56,11 @@
 
 ### Changed
 
+- `platform-dev-team-common`·`sdd-helper`의 Jira 연동을 자체 MCP 서버에서 **공식 Atlassian Rovo MCP 서버**(원격 호스티드, OAuth 2.1)로 전환
+  - 엔드포인트 `https://mcp.atlassian.com/v1/mcp` — `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp` 후 `/mcp` OAuth 인증으로 설정 (API 토큰·`JIRA_*` 환경변수 저장 불필요)
+  - `/sync-jira-tickets`: 도구 매핑 교체 (`jira_get_ticket`→`getJiraIssue`, `jira_transition`/`jira_list_transitions`→`transitionJiraIssue`/`getTransitionsForJiraIssue`, `jira_update_field`→`editJiraIssue`). 공식 MCP에 없는 `changelog_extract_tickets`/`changelog_check_branches`는 Read 및 Git(`git log --grep`)으로 대체. cloudId는 `getVisibleJiraProjects`로 확보
+  - `sdd-helper`의 `/sync-to-jira`: 공식 MCP에 없는 `jira_update_ticket_from_markdown`을 대체 — `getJiraIssue`(description을 markdown으로 조회)·`editJiraIssue`(markdown으로 기록; ADF 변환은 Atlassian MCP가 서버측 수행)를 사용하고, description 마커 splice는 스킬이 markdown 레벨에서 처리
+  - `sdd-helper`의 `init-specs`/`spec-manager`의 Jira 도구 탐지·호출을 `mcp__atlassian__getJiraIssue` 기준으로 갱신
 - 마켓플레이스 카탈로그 버전 1.6.0으로 업데이트.
 - 모든 플러그인 patch version bump 및 Claude/Codex marketplace version 동기화.
 - `synapse-applications` marketplace version을 plugin version 계열과 동기화.
@@ -77,6 +82,7 @@
 
 ### Removed
 
+- `platform-dev-team-common`의 자체 Jira MCP 서버(`mcp-servers/jira/`, TypeScript 기반 11개 도구) 제거 — 공식 Atlassian Rovo MCP로 대체. 공식 MCP에 대응 도구가 없는 보드/스프린트 조회(`jira_get_board`/`jira_get_sprint`)와 `jira_update_ticket_from_markdown` 헬퍼도 함께 제거(후자의 기능은 `/sync-to-jira` 스킬로 이관)
 - `docs/images/README.md` 미사용 스크린샷 가이드 삭제 (스크린샷 미생성, 참조 문서 없음)
 
 ### 등록된 플러그인

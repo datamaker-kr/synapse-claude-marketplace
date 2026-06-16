@@ -22,7 +22,7 @@ description: 현재 프로젝트의 CHANGELOG.md에 있는 Jira 티켓들을 Git
 
 - Git 저장소 루트에 CHANGELOG.md가 있어야 합니다
 - Git 저장소여야 합니다
-- Jira MCP 서버가 설정되어 있어야 합니다 (미설정 시 0단계에서 자동 설정 안내)
+- Atlassian MCP 서버(공식 Rovo MCP)가 설정되어 있어야 합니다 (미설정 시 0단계에서 자동 설정 안내)
 
 ## 사용법
 
@@ -42,9 +42,9 @@ description: 현재 프로젝트의 CHANGELOG.md에 있는 Jira 티켓들을 Git
 
 jira-sync 스킬의 상태 전이 규칙을 따라 아래 순서로 실행합니다:
 
-### 0단계: 환경 확인 및 Jira MCP 자동 설정
+### 0단계: 환경 확인 및 Atlassian MCP 자동 설정
 
-현재 작업 디렉토리(CWD)를 기준으로 프로젝트를 판별하고, Jira MCP 서버 연결을 확인합니다.
+현재 작업 디렉토리(CWD)를 기준으로 프로젝트를 판별하고, 공식 Atlassian Rovo MCP 서버 연결을 확인합니다.
 
 #### 0-1. 프로젝트 확인
 
@@ -53,113 +53,107 @@ jira-sync 스킬의 상태 전이 규칙을 따라 아래 순서로 실행합니
 3. CHANGELOG.md 존재 여부를 확인합니다.
 4. 없으면 에러 메시지를 출력하고 중단합니다.
 
-이후 모든 도구 호출에서 이 경로를 사용합니다:
-- `changelog_extract_tickets`의 `filePath`: `<git-root>/CHANGELOG.md`
-- `changelog_check_branches`의 `cwd`: `<git-root>`
+확인한 CHANGELOG.md 경로(`<git-root>/CHANGELOG.md`)와 git 루트(`<git-root>`)를 이후 단계(티켓 추출·브랜치 확인)에서 사용합니다.
 
-#### 0-2. Jira MCP 서버 연결 확인
+#### 0-2. Atlassian MCP 서버 연결 확인 및 cloudId 확보
 
-`changelog_extract_tickets` 도구를 테스트 호출하여 Jira MCP 서버 연결을 확인합니다.
+`getAccessibleAtlassianResources`(`mcp__atlassian__getAccessibleAtlassianResources`) 도구를 호출하여 (a) atlassian MCP 연결을 확인하고 (b) 접근 가능한 사이트 목록에서 **cloudId를 확보**합니다(datamaker 사이트의 cloudId 선택). 확보한 cloudId는 이후 모든 Jira 도구 호출에 재사용합니다.
 
-- **성공** → 1단계로 진행합니다.
+> `getVisibleJiraProjects`·`getJiraIssue` 등 다른 Jira 도구는 cloudId를 **입력으로 요구**하므로 cloudId 확보 용도로 쓸 수 없습니다. cloudId 발견은 반드시 `getAccessibleAtlassianResources`로 합니다.
+
+- **성공** → cloudId를 보관하고 1단계로 진행합니다.
 - **실패 (도구를 찾을 수 없음)** → 아래 자동 설정 절차를 시작합니다.
 
-#### 0-3. Jira MCP 자동 설정 (도구 미발견 시)
+#### 0-3. Atlassian MCP 자동 설정 (도구 미발견 시)
 
 사용자에게 자동 설정 여부를 묻습니다:
 
-> Jira MCP 서버가 설정되어 있지 않습니다. 자동으로 설정하시겠습니까?
-> - **예**: 환경변수를 입력받고 자동으로 설정합니다.
-> - **아니오**: 수동 설정 방법을 안내하고 중단합니다. (README 참조: `mcp-servers/jira/README.md`)
+> Atlassian MCP 서버가 설정되어 있지 않습니다. 자동으로 설정하시겠습니까?
+> - **예**: `claude mcp add`로 등록하고 OAuth 인증을 안내합니다.
+> - **아니오**: 수동 설정 방법을 안내하고 중단합니다. (README의 "Atlassian MCP 서버" 섹션 참조)
 
 **"예" 선택 시 다음 순서로 진행합니다:**
 
-**Step 1) 환경변수 입력 받기**
+**Step 1) Atlassian MCP 서버 등록**
 
-사용자에게 아래 3가지를 순서대로 질문합니다:
-
-| 변수 | 질문 | 비고 |
-|------|------|------|
-| `JIRA_USER_EMAIL` | "Jira 계정 이메일을 입력하세요 (예: name@datamaker.io)" | |
-| `JIRA_API_TOKEN` | "Jira API 토큰을 입력하세요 (발급: https://id.atlassian.com/manage-profile/security/api-tokens)" | 토큰이 없으면 발급 링크 안내 |
-| `JIRA_BASE_URL` | "Jira URL을 입력하세요 (기본값: https://datamaker.atlassian.net)" | 입력 없으면 기본값 사용 |
-
-**Step 2) 의존성 설치**
-
-플러그인의 Jira MCP 서버 경로를 자동으로 찾아 의존성을 설치합니다:
+Bash로 공식 Rovo MCP 서버를 HTTP 트랜스포트로 등록합니다:
 
 ```bash
-# 플러그인 경로 탐지: 이 커맨드 파일의 위치에서 상대 경로로 추론
-# 커맨드 파일 위치: <plugin-root>/commands/sync-jira-tickets.md
-# MCP 서버 위치: <plugin-root>/mcp-servers/jira/
-find ~/.claude -path "*/platform-dev-team-common/mcp-servers/jira/package.json" -type f 2>/dev/null | head -1
+claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp
 ```
 
-찾은 경로에서 `npm install`을 실행합니다:
+**Step 2) OAuth 인증 안내**
 
-```bash
-cd <jira-mcp-path> && npm install
-```
+Claude Code 세션에서 `/mcp`를 실행한 뒤, `atlassian` 서버를 선택하여 브라우저로 OAuth 2.1 인증을 완료하도록 안내합니다. (API 토큰을 별도로 저장할 필요가 없습니다.)
 
-**Step 3) ~/.claude.json에 MCP 서버 등록**
+**Step 3) 재실행 안내**
 
-`~/.claude.json` 파일을 Read로 읽은 후, `mcpServers` 객체에 `jira` 항목을 추가합니다.
-기존 내용을 유지하면서 아래 항목만 추가합니다:
+인증 완료 후 아래 메시지를 출력하고 **커맨드를 중단합니다**:
 
-```jsonc
-"jira": {
-  "command": "npx",
-  "args": ["tsx", "<자동탐지된-절대경로>/mcp-servers/jira/src/index.ts"],
-  "env": {
-    "JIRA_API_TOKEN": "<입력받은 값>",
-    "JIRA_USER_EMAIL": "<입력받은 값>",
-    "JIRA_BASE_URL": "<입력받은 값 또는 기본값>"
-  }
-}
-```
-
-- `~/.claude.json`이 없으면 새로 생성합니다.
-- 이미 `jira` MCP 서버가 등록되어 있으면 덮어쓸지 사용자에게 확인합니다.
-
-**Step 4) 재시작 안내**
-
-설정 완료 후 아래 메시지를 출력하고 **커맨드를 중단합니다**:
-
-> ✅ Jira MCP 서버 설정이 완료되었습니다.
+> ✅ Atlassian MCP 서버 설정이 완료되었습니다.
 >
-> Claude Code를 재시작한 후 `/sync-jira-tickets`를 다시 실행하세요.
-> 재시작 후 `/mcp` 명령으로 jira 서버가 목록에 나타나는지 확인할 수 있습니다.
+> `/mcp`에서 `atlassian` 서버 OAuth 인증을 완료한 후 `/sync-jira-tickets`를 다시 실행하세요.
+
+**"아니오" 선택 시:**
+
+아래 수동 설정 방법을 안내하고 **커맨드를 중단합니다**:
+
+- Claude Code: `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp` 실행 후 `/mcp`에서 OAuth 인증
+- 일반 MCP 클라이언트(데스크톱 등): 설정 파일에 아래 JSON 추가
+
+```json
+{ "mcpServers": { "atlassian": { "url": "https://mcp.atlassian.com/v1/mcp" } } }
+```
+
+자세한 내용은 README의 "Atlassian MCP 서버" 섹션을 참조합니다.
 
 ### 1단계: 티켓 추출
 
-`changelog_extract_tickets` 도구로 현재 프로젝트의 CHANGELOG.md에서 티켓 ID를 추출합니다.
+Read로 `<git-root>/CHANGELOG.md`를 읽어, 대상 섹션(기본 `unreleased`)에서 `[A-Z]+-\d+` 패턴의 Jira 티켓 ID를 추출합니다. 섹션 헤더는 `## [Unreleased]` 또는 `## [vX.Y.Z]` 형태입니다.
 
-```
-changelog_extract_tickets(filePath: "<git-root>/CHANGELOG.md", section: "unreleased")
+보조로 Bash를 사용할 수 있습니다. 기본 동작은 `--section`(기본 unreleased)으로 **대상 섹션만 한정**해야 하므로, awk로 섹션 구간을 먼저 자른 뒤 추출합니다:
+
+```bash
+# 기본 경로: 대상 섹션(예: Unreleased)만 한정해 티켓 ID 추출
+# ## [Unreleased] 헤더부터 다음 ## 헤더 직전까지
+awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' <git-root>/CHANGELOG.md \
+  | grep -oE '[A-Z]+-[0-9]+' | sort -u
+
+# (주의) 파일 전체 grep은 과거 릴리스 섹션의 티켓까지 포함하므로 --section 의도와 어긋날 수 있음.
+# 섹션 구분이 없거나 전체가 필요한 경우에만 사용:
+# grep -oE '[A-Z]+-[0-9]+' <git-root>/CHANGELOG.md | sort -u
 ```
 
 ### 2단계: 브랜치 확인
 
-`changelog_check_branches` 도구로 각 티켓이 어떤 브랜치에 포함되는지 확인합니다.
+Bash git으로 각 티켓이 어떤 브랜치(main, staging, production)에 포함되는지 확인합니다. `git log --grep`으로 각 브랜치의 커밋 메시지에서 티켓 ID를 검색하는 방식입니다.
 
-```
-changelog_check_branches(ticketIds: [...], branches: ["origin/main", "origin/staging", "origin/production"], cwd: "<git-root>")
+```bash
+git -C <git-root> fetch --all --quiet
+# 각 티켓 ID에 대해 각 브랜치 포함 여부 확인 (커밋 메시지에서 티켓 ID 검색)
+git -C <git-root> log origin/main --grep="SYN-1234" --oneline | head -1        # 비어있지 않으면 main에 포함
+git -C <git-root> log origin/staging --grep="SYN-1234" --oneline | head -1     # staging 포함 여부
+git -C <git-root> log origin/production --grep="SYN-1234" --oneline | head -1  # production 포함 여부
 ```
 
 ### 3단계: 현재 상태 조회
 
-`jira_get_ticket` 도구로 각 티켓의 현재 Jira 상태를 조회합니다.
+`getJiraIssue` 도구로 각 티켓의 현재 Jira 상태를 조회합니다. 0-2단계에서 확보한 cloudId를 사용합니다.
+
+```
+getJiraIssue({ cloudId, issueIdOrKey: "SYN-1234", fields: ["summary", "status", "customfield_10659"] })
+```
 
 ### 4단계: 상태 전이 규칙 적용
 
-각 티켓에 대해 jira-sync 스킬의 규칙을 적용합니다:
+각 티켓에 대해 jira-sync 스킬의 규칙을 적용합니다. 상태 전이는 `getTransitionsForJiraIssue`로 대상 상태에 해당하는 전이 id를 먼저 조회한 뒤 `transitionJiraIssue`에 그 id를 넘깁니다:
 
 | 조건 | 액션 |
 |------|------|
-| main/staging에 있고 상태 < 리뷰 완료 | → `jira_transition` → "리뷰 완료" |
-| staging 또는 production에 있음 | → `jira_update_field(customfield_10659, {id: "10678"})` (이미 설정 시 SKIP) |
+| main/staging에 있고 상태 < 리뷰 완료 | → `getTransitionsForJiraIssue`로 "리뷰 완료" 전이 id 조회 후 `transitionJiraIssue({cloudId, issueIdOrKey, transition: <id>})` |
+| staging 또는 production에 있음 | → `editJiraIssue({cloudId, issueIdOrKey, fields: { customfield_10659: { id: "10678" } }})` (이미 설정 시 SKIP) |
 | staging + 검토 완료 | → SKIP |
-| production에 있고 완료 아님 | → `jira_transition` → "완료" |
+| production에 있고 완료 아님 | → `getTransitionsForJiraIssue`로 "완료" 전이 id 조회 후 `transitionJiraIssue({cloudId, issueIdOrKey, transition: <id>})` |
 
 ### 5단계: 결과 리포트
 
@@ -183,5 +177,5 @@ changelog_check_branches(ticketIds: [...], branches: ["origin/main", "origin/sta
 
 ## --dry-run 모드
 
-`--dry-run` 옵션이 있으면 4단계에서 실제 API 호출 없이 "계획"만 보여줍니다.
-jira_get_ticket 조회까지만 수행하고, 예상 액션을 테이블로 출력합니다.
+`--dry-run` 옵션이 있으면 4단계에서 실제 변경(전이·필드 수정) 없이 "계획"만 보여줍니다.
+`getJiraIssue` 조회까지만 수행하고, 예상 액션을 테이블로 출력합니다.
