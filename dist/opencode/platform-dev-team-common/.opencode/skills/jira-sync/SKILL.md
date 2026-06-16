@@ -24,6 +24,9 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 
 ## 상태 전이 규칙
 
+> **전제 (취소/종료 제외)**: 상태가 "취소" 등 **터미널 상태인 티켓은 모든 규칙에서 제외(SKIP)**하고 사유를 기록한다.
+> **전이 선택**: `getTransitionsForJiraIssue` 결과 중 **대상 상태(`to.name`)가 목표 상태와 일치하는 전이**를 고른다(전이 *이름*이 아니라 대상 상태 기준). 목표 전이가 목록에 없으면 직접 전이 불가이므로 SKIP하고 사유를 기록한다.
+
 ### 규칙 1: main 또는 staging 병합 → 리뷰 완료
 
 - **조건**: 티켓이 main 또는 staging 브랜치에 포함되어 있고, 현재 상태가 리뷰 완료 미만 (대기, 진행 중, 리뷰 중)
@@ -55,3 +58,5 @@ CHANGELOG.md의 티켓들을 Git 브랜치(main, staging, production) 상태에 
 - 필드: `customfield_10659`
 - 타입: select
 - staging 병합 시 값: `{id: "10678"}`
+
+> 이 필드 id/값과 위 상태명("리뷰 완료"·"검토 완료"·"완료")은 **datamaker Jira 워크플로 전용** 값이다. 다른 Jira 인스턴스에 적용하려면 이 값들을 해당 워크플로에 맞게 조정해야 한다.

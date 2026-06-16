@@ -120,73 +120,94 @@ the active coding agent 세션에서 `/mcp`를 실행한 뒤, `atlassian` 서버
 
 ### 1단계: 티켓 추출
 
-Read로 `<git-root>/CHANGELOG.md`를 읽어, 대상 섹션(기본 `unreleased`)에서 `[A-Z]+-\d+` 패턴의 Jira 티켓 ID를 추출합니다. 섹션 헤더는 `## [Unreleased]` 또는 `## [vX.Y.Z]` 형태입니다.
+Read로 `<git-root>/CHANGELOG.md`를 읽어 대상 섹션(`--section`, 기본 `unreleased`)에서 Jira 티켓 ID를 추출합니다.
 
-보조로 Bash를 사용할 수 있습니다. 기본 동작은 `--section`(기본 unreleased)으로 **대상 섹션만 한정**해야 하므로, awk로 섹션 구간을 먼저 자른 뒤 추출합니다:
+- CHANGELOG 항목은 `- [SYN-1234](https://.../browse/SYN-1234) 설명` 형식이므로 **마크다운 링크 패턴 `\[([A-Z]+-[0-9]+)\]\(` 로만 추출**합니다. 본문 전체에서 `[A-Z]+-[0-9]+`만 grep하면 `UTF-8`·`SHA-256`·`ISO-8601`·`RFC-2616` 같은 토큰을 티켓으로 오탐하므로 사용하지 않습니다.
+- 추출한 각 ID는 셸/도구에 넘기기 전에 `^[A-Z][A-Z0-9]+-[0-9]+$` 형식을 만족하는지 검증합니다(임의 문자열을 셸 인자로 보간하지 않음).
+- 대상 섹션만 한정합니다. 섹션 헤더는 `## [Unreleased]` / `## [vX.Y.Z]` 형태이며, `--section` 값으로 동적으로 구간을 자릅니다.
+
+Bash 예시(섹션 한정 → 링크 패턴 추출):
 
 ```bash
-# 기본 경로: 대상 섹션(예: Unreleased)만 한정해 티켓 ID 추출
-# ## [Unreleased] 헤더부터 다음 ## 헤더 직전까지
-awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' <git-root>/CHANGELOG.md \
-  | grep -oE '[A-Z]+-[0-9]+' | sort -u
-
-# (주의) 파일 전체 grep은 과거 릴리스 섹션의 티켓까지 포함하므로 --section 의도와 어긋날 수 있음.
-# 섹션 구분이 없거나 전체가 필요한 경우에만 사용:
-# grep -oE '[A-Z]+-[0-9]+' <git-root>/CHANGELOG.md | sort -u
+SECTION='Unreleased'   # --section 값 (예: v2026.1.1)
+# 해당 섹션 헤더(리터럴 prefix 매칭)부터 다음 ## 헤더 직전까지만 추출 → 정규식 escape 불필요
+awk -v hdr="## [${SECTION}]" 'index($0, hdr)==1 {f=1; next} /^## \[/{f=0} f' <git-root>/CHANGELOG.md \
+  | grep -oE '\[[A-Z]+-[0-9]+\]\(' | grep -oE '[A-Z]+-[0-9]+' | sort -u
 ```
 
 ### 2단계: 브랜치 확인
 
-Bash git으로 각 티켓이 어떤 브랜치(main, staging, production)에 포함되는지 확인합니다. `git log --grep`으로 각 브랜치의 커밋 메시지에서 티켓 ID를 검색하는 방식입니다.
+Bash git으로 각 티켓이 어떤 브랜치(main, staging, production)에 포함되는지 확인합니다. `git log --grep`으로 각 브랜치의 커밋 메시지에서 티켓 ID를 검색하는 방식입니다. **존재하지 않는 브랜치는 건너뜁니다.**
 
 ```bash
-git -C <git-root> fetch --all --quiet
-# 각 티켓 ID에 대해 각 브랜치 포함 여부 확인 (커밋 메시지에서 티켓 ID 검색)
-git -C <git-root> log origin/main --grep="SYN-1234" --oneline | head -1        # 비어있지 않으면 main에 포함
-git -C <git-root> log origin/staging --grep="SYN-1234" --oneline | head -1     # staging 포함 여부
-git -C <git-root> log origin/production --grep="SYN-1234" --oneline | head -1  # production 포함 여부
+git -C <git-root> fetch origin --quiet   # 필요한 origin만 갱신 (--all 불필요)
+
+for BR in main staging production; do
+  # 브랜치 존재 확인 — 없으면 건너뛰고 리포트에 "브랜치 없음"으로 표기
+  git -C <git-root> rev-parse --verify --quiet "origin/$BR" >/dev/null || { echo "skip: origin/$BR 없음"; continue; }
+  # 티켓 포함 여부 (TICKET은 1단계에서 ^[A-Z][A-Z0-9]+-[0-9]+$로 검증된 값만 사용)
+  git -C <git-root> log "origin/$BR" --grep="$TICKET" --oneline | head -1   # 비어있지 않으면 해당 브랜치 포함
+done
 ```
 
-### 3단계: 현재 상태 조회
+존재하지 않는 브랜치는 해당 브랜치 기준 규칙(예: production 없음 → 규칙 4)을 적용하지 않고 리포트에 누락 사실을 표기합니다.
 
-`getJiraIssue` 도구로 각 티켓의 현재 Jira 상태를 조회합니다. 0-2단계에서 확보한 cloudId를 사용합니다.
+### 3단계: 현재 상태 조회 (+ 취소/종료 상태 제외)
+
+`getJiraIssue`로 각 티켓의 현재 상태를 조회합니다(0-2단계 cloudId 사용).
 
 ```
 getJiraIssue({ cloudId, issueIdOrKey: "SYN-1234", fields: ["summary", "status", "customfield_10659"] })
 ```
 
-### 4단계: 상태 전이 규칙 적용
+상태가 **취소/종료 등 터미널 상태**(예: "취소")인 티켓은 이후 모든 규칙에서 제외(SKIP)하고 리포트에 사유를 남깁니다.
 
-각 티켓에 대해 jira-sync 스킬의 규칙을 적용합니다. 상태 전이는 `getTransitionsForJiraIssue`로 대상 상태에 해당하는 전이 id를 먼저 조회한 뒤 `transitionJiraIssue`에 그 id를 넘깁니다:
+### 4단계: 적용 계획 산출 (아직 변경하지 않음)
 
-| 조건 | 액션 |
-|------|------|
-| main/staging에 있고 상태 < 리뷰 완료 | → `getTransitionsForJiraIssue`로 "리뷰 완료" 전이 id 조회 후 `transitionJiraIssue({cloudId, issueIdOrKey, transition: <id>})` |
-| staging 또는 production에 있음 | → `editJiraIssue({cloudId, issueIdOrKey, fields: { customfield_10659: { id: "10678" } }})` (이미 설정 시 SKIP) |
-| staging + 검토 완료 | → SKIP |
-| production에 있고 완료 아님 | → `getTransitionsForJiraIssue`로 "완료" 전이 id 조회 후 `transitionJiraIssue({cloudId, issueIdOrKey, transition: <id>})` |
+각 티켓에 jira-sync 스킬 규칙을 적용해 **예정 액션만 계산**합니다(이 단계에서는 Jira를 변경하지 않음):
 
-### 5단계: 결과 리포트
+| 조건 | 예정 액션 |
+|------|----------|
+| 상태가 취소/종료 | SKIP (사유: 터미널 상태) |
+| main/staging 포함 & 상태 < 리뷰 완료 | 상태 → "리뷰 완료" |
+| staging 또는 production 포함 | `customfield_10659 = { id: "10678" }` (이미 설정 시 SKIP) |
+| staging & 검토 완료 | SKIP |
+| production 포함 & 완료 아님 | 상태 → "완료" |
 
-모든 처리가 완료되면 아래 형식으로 결과를 보여줍니다:
+상태 전이는 `getTransitionsForJiraIssue`로 가능한 전이를 조회한 뒤 **대상 상태(`to.name`)가 목표 상태("리뷰 완료"/"완료")와 일치하는 전이**를 선택해 `transitionJiraIssue({cloudId, issueIdOrKey, transition: <id>})`로 적용합니다(전이 *이름*이 아니라 대상 상태 기준). 목표 전이가 목록에 없으면 직접 전이 불가이므로 "전이 불가"로 표기하고 SKIP합니다.
+
+> 주의: `customfield_10659`/`{id:"10678"}`와 상태명("리뷰 완료"·"검토 완료"·"완료")은 **datamaker Jira 워크플로 전용** 값입니다. 다른 인스턴스에서는 jira-sync 스킬의 해당 값을 조정해야 합니다.
+
+### 5단계: 계획 확인 (필수 게이트)
+
+4단계 계획을 6단계 리포트와 동일한 형식(단, "결과" 대신 "예정 액션")의 테이블로 출력한 뒤 적용 여부를 확인합니다:
+
+- `--dry-run`이면 계획만 출력하고 **여기서 종료**합니다(확인·적용 없음).
+- 그 외에는 `ask the user a concise clarification`으로 `적용` / `취소`를 묻습니다. **`취소` 선택 시 어떤 변경도 하지 않고 종료**합니다.
+
+CWD·섹션·브랜치 오탐 시 다수 티켓이 잘못 전이되는 것을 막는 안전 장치이므로 생략하지 않습니다.
+
+### 6단계: 적용 및 결과 리포트
+
+`적용` 확인을 받은 경우에만 전이·필드 변경을 실행하고 아래 형식으로 결과를 보여줍니다. 실패 건은 **사유**를 함께 기록합니다.
 
 ```
 ## Jira 동기화 결과
 
 프로젝트: <프로젝트 이름> (<git-root>)
-섹션: unreleased
+섹션: <section>
+누락 브랜치: <없으면 생략>   # 예: origin/production 없음
 
-| 티켓 | 이전 상태 | 액션 | 결과 |
-|------|----------|------|------|
-| SYN-1234 | 리뷰 중 | → 리뷰 완료 | 완료 |
-| SYN-5678 | 리뷰 완료 | customfield 변경 | 완료 |
-| SYN-9012 | 검토 완료 | SKIP | - |
-| SYN-3456 | 리뷰 완료 | → 완료 | 완료 |
+| 티켓 | 이전 상태 | 액션 | 결과 | 사유 |
+|------|----------|------|------|------|
+| SYN-1234 | 리뷰 중 | → 리뷰 완료 | 완료 | - |
+| SYN-5678 | 리뷰 완료 | customfield 변경 | 완료 | - |
+| SYN-9012 | 검토 완료 | SKIP | - | staging+검토 완료 |
+| SYN-3456 | 리뷰 중 | → 완료 | 실패 | 전이 불가(직접 전이 없음) |
 
 처리: N건 / 스킵: M건 / 실패: K건
 ```
 
 ## --dry-run 모드
 
-`--dry-run` 옵션이 있으면 4단계에서 실제 변경(전이·필드 수정) 없이 "계획"만 보여줍니다.
-`getJiraIssue` 조회까지만 수행하고, 예상 액션을 테이블로 출력합니다.
+`--dry-run`이면 1~4단계(추출·브랜치 확인·상태 조회·계획 산출)까지만 수행하고 **5단계 확인과 6단계 적용을 건너뜁니다**. 실제 Jira 변경(전이·필드 수정)은 발생하지 않습니다.
