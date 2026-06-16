@@ -1,7 +1,7 @@
 ---
 name: sync-to-jira
 description: 완성된 specs/plans 문서를 Jira 이슈로 push-back 합니다 (Markdown 본문을 마커 구간에 splice; ADF 변환은 Atlassian MCP가 수행). 공식 Atlassian MCP가 가용한 환경에서만 동작합니다.
-allowed-tools: Read, Glob, Grep, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Bash, AskUserQuestion
 user-invocable: true
 ---
 
@@ -65,11 +65,19 @@ Look in the available tools for any of:
 - `mcp__atlassian__getJiraIssue` and `mcp__atlassian__editJiraIssue`
 - any pair of tools where one name ends with `getJiraIssue` and the other ends with `editJiraIssue`
 
-If the matching pair is not available, stop with:
-```
-sync-to-jira aborted: Atlassian MCP is not available in this session.
-공식 Atlassian MCP 설정: `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp` 후 `/mcp` 인증 (자세히: plugins/platform-dev-team-common/README.md의 Atlassian MCP 서버 섹션)
-```
+If the matching pair is **not** available, do not silently abort — **induce setup**:
+
+1. Ask with AskUserQuestion: `Atlassian MCP가 설정되어 있지 않습니다. 지금 설정할까요?` — options `설정` / `취소`.
+2. **설정** 선택 시: register the server with Bash, then guide OAuth and stop (re-run after auth):
+   ```bash
+   claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp
+   ```
+   > ✅ Atlassian MCP 등록 완료. Claude Code에서 `/mcp`를 실행해 `atlassian` 서버 OAuth 인증을 마친 뒤 `/sync-to-jira`를 다시 실행하세요.
+3. **취소** 선택 시: stop with:
+   ```
+   sync-to-jira aborted: Atlassian MCP is not available in this session.
+   수동 설정: `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp` 후 `/mcp` 인증 (자세히: plugins/platform-dev-team-common/README.md의 Atlassian MCP 서버 섹션)
+   ```
 
 Record the active prefix; reuse it for the calls in Steps 5 and 6.
 

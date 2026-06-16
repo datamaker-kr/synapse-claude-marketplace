@@ -62,7 +62,10 @@ Otherwise, determine whether Jira MCP tools are available in the current session
    - `mcp__atlassian__getJiraIssue`
    - any tool whose name ends with `getJiraIssue`
 2. Use the first matching prefix. Record it as the active Jira MCP prefix for this run (used by Steps 0.6 and 0.7). When available, also call `getAccessibleAtlassianResources` once at the start to obtain a `cloudId` for subsequent calls (other Jira tools require `cloudId` as input, so they can't be used to discover it).
-3. If no matching tool is found, set Jira MCP availability to `false`. Do not error — Jira features are optional.
+3. If no matching tool is found, Jira features are optional — but **induce setup before disabling** (skip this prompt if `--no-jira` was passed or no ticket ID exists):
+   - AskUserQuestion: `Jira MCP가 없어 티켓 자동 채움/난이도 추론을 건너뜁니다. 지금 설정할까요?` — options `설정`(권장) / `건너뛰기`.
+   - **설정**: register with Bash (`claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp`), then tell the user to run `/mcp` and complete the `atlassian` OAuth. OAuth only takes effect on the next run, so set Jira MCP availability to `false` for **this** run, continue with the empty template, and add to the final message: `Atlassian MCP OAuth 인증(/mcp) 후 /init-specs를 다시 실행하면 Jira 자동 채움이 적용됩니다.`
+   - **건너뛰기**: set Jira MCP availability to `false` and proceed silently.
 
 Record the result internally; do **not** write it to any file.
 
